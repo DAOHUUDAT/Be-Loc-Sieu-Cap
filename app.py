@@ -10,7 +10,7 @@ if 'history_log' not in st.session_state: st.session_state['history_log'] = []
 inf_factor = 1.0 # Hệ số mặc định bảo vệ ống dẫn
 
 # --- 2. CẨM NANG CHIẾN THUẬT (Sidebar) ---
-st.sidebar.header("📓 CẨM NANG HOÀNG ĐẾ")
+st.sidebar.header("📓 CẨM NANG THỢ CÂU")
 with st.sidebar.expander("🔍 Giải mã Thang đo & Chỉ số", expanded=True):
     st.markdown("""
     - **🛡️ Niềm tin > 80%:** Siêu cá, hội tụ đủ Thiên thời - Địa lợi - Nhân hòa.
@@ -20,7 +20,7 @@ with st.sidebar.expander("🔍 Giải mã Thang đo & Chỉ số", expanded=True
     - **🥇 ĐẠI CA:** Đệ tử ưu tú nhất trong Elite 20.
     """)
 
-st.title("🔱 HÃY CHỌN CÁ ĐÚNG v5.7.1: HOÀNG ĐẾ TỐI THƯỢNG")
+st.title("🔱 HÃY CHỌN CÁ ĐÚNG v5.7.1: HOÀNG ĐẾ VỀ BỜ")
 
 # --- 3. TRẠM QUAN TRẮC ĐẠI DƯƠNG (Bọc thép) ---
 try:
