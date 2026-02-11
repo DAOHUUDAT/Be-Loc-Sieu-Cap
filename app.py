@@ -73,36 +73,72 @@ except: pass
 tab_radar, tab_analysis, tab_history = st.tabs(["🎯 RADAR ELITE", "💎 CHI TIẾT SIÊU CÁ", "📓 SỔ VÀNG"])
 
 with tab_radar:
-    st.subheader("🤖 Top 20 Đệ Tử Cá (Cập nhật trực tiếp)")
+    st.subheader("🤖 Top 20 Đệ Tử Cá (Chiến thuật Trường Money)")
+    
+    # Hiển thị trạng thái Đại dương để làm tham chiếu
+    status_color = "green" if inf_factor > 1 else "red"
+    st.markdown(f"**Trạng thái dòng nước:** <span style='color:{status_color}'>{ '🌊 Thuận lợi (Hệ số x' + str(inf_factor) + ')' if inf_factor > 1 else '⚠️ Khó khăn (Hệ số x' + str(inf_factor) + ')' }</span>", unsafe_allow_html=True)
+    
+    # Danh mục 20 mã trọng điểm
     elite_20 = ["DGC", "MWG", "FPT", "TCB", "SSI", "HPG", "GVR", "CTR", "DBC", "VNM", "STB", "MBB", "ACB", "KBC", "VGC", "PVS", "PVD", "ANV", "VHC", "REE"]
     radar_list = []
     
-    with st.spinner('Đang tầm soát thực phẩm...'):
+    with st.spinner('Đang tầm soát siêu cá...'):
         for tk in elite_20:
             try:
-                d = yf.download(f"{tk}.VN", period="50d", progress=False)
+                # Tải dữ liệu 100 phiên để tính toán MA50 và RS
+                d = yf.download(f"{tk}.VN", period="100d", progress=False)
                 if not d.empty:
                     if isinstance(d.columns, pd.MultiIndex): d.columns = d.columns.get_level_values(0)
-                    p_c = d['Close'].iloc[-1]
-                    v_now = d['Volume'].iloc[-1]; v_avg = d['Volume'].rolling(20).mean().iloc[-1]
-                    ma20 = d['Close'].rolling(20).mean().iloc[-1]
                     
-                    # Tính nhiệt độ RSI
+                    p_c = d['Close'].iloc[-1]
+                    v_now = d['Volume'].iloc[-1]
+                    v_avg = d['Volume'].rolling(20).mean().iloc[-1]
+                    ma20 = d['Close'].rolling(20).mean().iloc[-1]
+                    ma50 = d['Close'].rolling(50).mean().iloc[-1]
+                    
+                    # 1. Tính nhiệt độ RSI
                     d['rsi_val'] = compute_rsi(d['Close'])
                     curr_rsi = d['rsi_val'].iloc[-1]
-                    
-                    is_big = p_c > ma20 and v_now > v_avg
                     temp = "🔥 Nóng" if curr_rsi > 70 else "❄️ Lạnh" if curr_rsi < 30 else "🌤️ Êm"
                     
+                    # 2. Tính sức mạnh tương quan (RS - Relative Strength)
+                    # Hiệu suất mã vs VN-Index trong 20 phiên
+                    stock_perf = (p_c / d['Close'].iloc[-20]) - 1
+                    vni_perf = (v_c / vni['Close'].iloc[-20]) - 1 if not vni.empty else 0
+                    is_stronger = stock_perf > vni_perf
+                    
+                    # 3. PHÂN LOẠI SIÊU CÁ (Theo triết lý hôm qua đã nghiên cứu)
+                    # Điều kiện Siêu Cá: Giá > MA20, Vol > 1.2x trung bình, và Khỏe hơn Đại dương
+                    if p_c > ma20 and v_now > v_avg * 1.2 and is_stronger:
+                        loai_ca = "🚀 SIÊU CÁ"
+                        priority = 1
+                    elif p_c > ma20 and p_c > ma50:
+                        loai_ca = "Cá Lớn 🐋"
+                        priority = 2
+                    elif p_c > ma20:
+                        loai_ca = "Cá Đang Lớn 🐡"
+                        priority = 3
+                    else:
+                        loai_ca = "Cá Nhỏ 🐟"
+                        priority = 4
+                        
                     radar_list.append({
-                        "Mã": tk, "Giá": f"{p_c:,.0f}",
+                        "Mã": tk, 
+                        "Giá": f"{p_c:,.0f}",
                         "Sóng": "🌊 Mạnh" if v_now > v_avg * 1.5 else "☕ Lặng",
                         "Nhiệt độ": temp,
-                        "Loại": "Cá Lớn 🐋" if is_big else "Cá Nhỏ 🐟",
-                        "Thức ăn": f"{((ma20/p_c)-1)*100:+.1f}%" if not is_big else "✅ Đang no"
+                        "Đại Dương": "💪 Khỏe" if is_stronger else "🐌 Yếu",
+                        "Loại": loai_ca,
+                        "Thức ăn": f"{((ma20/p_c)-1)*100:+.1f}%" if p_c < ma20 else "✅ Đang no",
+                        "priority": priority
                     })
             except: continue
-    st.table(pd.DataFrame(radar_list))
+            
+    # Sắp xếp để Siêu Cá hiện lên đầu danh sách
+    df_radar = pd.DataFrame(radar_list).sort_values(by="priority")
+    # Ẩn cột priority khi hiển thị
+    st.table(df_radar.drop(columns=['priority']))
 
 with tab_analysis:
     try:
