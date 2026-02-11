@@ -289,6 +289,39 @@ with tab_analysis:
     except:
         st.error(f"Đang tầm soát mã cá {t_input}...")
 
+with tab_bctc:
+    st.subheader(f"🔍 Phân tích nội tạng Cá: {t_input}")
+    
+    # 1. Hiển thị các chỉ số tài chính thô từ yfinance
+    if not fin_q.empty:
+        col_fa1, col_fa2 = st.columns(2)
+        
+        with col_fa1:
+            st.write("**📑 Bảng cân đối rút gọn (5 quý):**")
+            # Hiển thị bảng dữ liệu tài chính
+            st.dataframe(fin_q.iloc[:, :5])
+            
+        with col_fa2:
+            st.write("**💡 Đánh giá từ Gemini 3 Flash:**")
+            # Đây là nơi mình sẽ đưa ra nhận định khi bro cần
+            st.success(f"""
+            - **Doanh thu:** {'Tăng trưởng tốt' if rev_growth > 0 else 'Đang đi ngang/giảm'}.
+            - **Vị thế:** Cá đang có {trust}% điểm tin cậy dựa trên nội tại.
+            - **Chiến thuật:** Kết hợp BCTC này với biểu đồ Ichimoku ở Tab Chi tiết để tìm điểm vào.
+            """)
+            
+        st.divider()
+        
+        # 2. Gợi ý nâng cấp cho bro
+        st.info(f"""
+        **🚀 Để phân tích sâu hơn cho {t_input}, bro có thể:**
+        1. Tải file BCTC (.pdf) của {t_input} lên đây.
+        2. Nhờ Gemini 3 phân tích 'Biên lợi nhuận gộp' và 'Nợ vay'.
+        3. Kiểm tra các khoản 'Phải thu' để xem cá có đang bị chiếm dụng vốn không.
+        """)
+    else:
+        st.warning("Không tìm thấy dữ liệu BCTC tự động cho mã này. Bro hãy tải file PDF lên để mình mổ xẻ nhé!")
+
 with tab_history:
     st.subheader("📓 DANH SÁCH CÁ ĐÃ TẦM SOÁT")
     if st.session_state.history_log:
