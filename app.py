@@ -125,7 +125,7 @@ except: pass
 
 # --- 4. HỆ THỐNG TABS ---
 # Thay dòng st.tabs cũ bằng dòng này để lưu trạng thái vào biến selected_tab
-tab_radar, tab_analysis, tab_history = st.tabs(["🎯 RADAR ELITE", "💎 CHI TIẾT SIÊU CÁ", "📓 SỔ VÀNG"])
+tab_radar, tab_analysis, tab_bctc, tab_history = st.tabs(["🎯 RADAR ELITE", "💎 CHI TIẾT SIÊU CÁ", "📊 MỔ XẺ BCTC", "📓 SỔ VÀNG"])
 
 with tab_radar:
     st.subheader("🤖 Top 20 SIÊU CÁ")
@@ -292,36 +292,31 @@ with tab_analysis:
 with tab_bctc:
     st.subheader(f"🔍 Phân tích nội tạng Cá: {t_input}")
     
-    # 1. Hiển thị các chỉ số tài chính thô từ yfinance
-    if not fin_q.empty:
-        col_fa1, col_fa2 = st.columns(2)
-        
-        with col_fa1:
-            st.write("**📑 Bảng cân đối rút gọn (5 quý):**")
-            # Hiển thị bảng dữ liệu tài chính
-            st.dataframe(fin_q.iloc[:, :5])
+    # Kiểm tra xem dữ liệu tài chính (fin_q) đã được tải ở tab trước đó chưa
+    try:
+        if not fin_q.empty:
+            col_fa1, col_fa2 = st.columns([2, 1])
             
-        with col_fa2:
-            st.write("**💡 Đánh giá từ Gemini 3 Flash:**")
-            # Đây là nơi mình sẽ đưa ra nhận định khi bro cần
-            st.success(f"""
-            - **Doanh thu:** {'Tăng trưởng tốt' if rev_growth > 0 else 'Đang đi ngang/giảm'}.
-            - **Vị thế:** Cá đang có {trust}% điểm tin cậy dựa trên nội tại.
-            - **Chiến thuật:** Kết hợp BCTC này với biểu đồ Ichimoku ở Tab Chi tiết để tìm điểm vào.
-            """)
-            
-        st.divider()
-        
-        # 2. Gợi ý nâng cấp cho bro
-        st.info(f"""
-        **🚀 Để phân tích sâu hơn cho {t_input}, bro có thể:**
-        1. Tải file BCTC (.pdf) của {t_input} lên đây.
-        2. Nhờ Gemini 3 phân tích 'Biên lợi nhuận gộp' và 'Nợ vay'.
-        3. Kiểm tra các khoản 'Phải thu' để xem cá có đang bị chiếm dụng vốn không.
-        """)
-    else:
-        st.warning("Không tìm thấy dữ liệu BCTC tự động cho mã này. Bro hãy tải file PDF lên để mình mổ xẻ nhé!")
-
+            with col_fa1:
+                st.write("**📑 Bảng dữ liệu tài chính 5 quý:**")
+                # Hiển thị bảng số liệu để bro tự soi các dòng chi tiết
+                st.dataframe(fin_q.iloc[:, :5], use_container_width=True)
+                
+            with col_fa2:
+                st.write("**💡 Nhận định từ Gemini 3 Flash:**")
+                # Tính toán nhanh một số chỉ số để đưa ra lời khuyên
+                st.success(f"""
+                - **Sức khỏe:** {trust}% (Kết hợp Nội tại & Kỹ thuật).
+                - **Doanh thu:** {'🚀 Đang bơi nhanh' if rev_growth > 0 else '🐢 Đang bơi chậm'}.
+                - **Lời khuyên:** Kiểm tra kỹ mục 'Lợi nhuận ròng' trong bảng bên trái để xem cá có thực sự béo tốt không.
+                """)
+                
+            st.divider()
+            st.info(f"💡 **Mẹo cho bro:** Nếu muốn soi sâu hơn mã {t_input}, hãy gửi file BCTC PDF cho tôi, Gemini 3 sẽ giúp bro tìm các khoản 'nợ xấu' hoặc 'hàng tồn kho' bất thường.")
+        else:
+            st.warning("Dữ liệu tài chính tự động đang bị chặn. Bro hãy thử soi mã khác hoặc đợi lát nữa nhé.")
+    except NameError:
+        st.error("Lỗi hệ thống: Vui lòng soi mã cá ở Tab 'Chi tiết siêu cá' trước khi vào đây mổ xẻ.")
 with tab_history:
     st.subheader("📓 DANH SÁCH CÁ ĐÃ TẦM SOÁT")
     if st.session_state.history_log:
