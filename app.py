@@ -31,10 +31,8 @@ def compute_rsi(data, window=14):
 
 # --- 2. SIDEBAR: TRI KỶ & CẨM NANG CHIẾN THUẬT ---
 with st.sidebar:
-    # Sử dụng Container để bọc ảnh và xử lý lỗi hiển thị
+    # 1. Ảnh Tri Kỷ
     img_url = "https://github.com/DAOHUUDAT/Be-Loc-Sieu-Cap/blob/main/anh-tri-ky.jpg?raw=true"
-    
-    # Cách hiển thị ảnh an toàn hơn
     st.markdown(
         f"""
         <div style="display: flex; justify-content: center;">
@@ -48,41 +46,38 @@ with st.sidebar:
     st.header("🎮 ĐÀI CHỈ HUY")
     t_input = st.text_input("🔍 SOI MÃ CÁ", "VGC").upper()
     st.divider()
-    
-st.header("📓 CẨM NANG")
+
+    # 2. Cẩm Nang Toàn Diện (Đã sửa lỗi thụt lề)
+    st.header("📓 CẨM NANG")
     with st.expander("📖 Giải mã thông số", expanded=True):
-        # GIỮ NGUYÊN NỘI DUNG CŨ
-        st.markdown("### 🚀 Phân loại hệ sinh thái:")
-        st.write("- **SIÊU CÁ:** Giá > MA20 + Vol nổ + Khỏe hơn VN-Index.")
-        st.write("- **Cá Lớn 🐋:** Xu hướng tăng dài hạn (Giá > MA20 & MA50).")
-        st.write("- **Cá Đang Lớn 🐡:** Giai đoạn chuyển mình, vừa vượt MA20.")
-        st.write("- **Cá Nhỏ 🐟:** Dòng tiền yếu - Tạm bỏ qua.")
+        # PHẦN TỔNG QUÁT (Hệ tư tưởng Trường Money)
+        st.markdown("### 🚀 Hệ sinh thái Cá:")
+        st.write("- **SIÊU CÁ:**ội tụ 3 yếu tố: Giá > MA20 + Vol đột biến (>120%) + Sức mạnh RS khỏe hơn VN-Index.")
+        st.write("- **Cá Lớn 🐋:** Xu hướng tăng bền vững (Giá nằm trên cả MA20 và MA50).")
+        st.write("- **Cá Đang Lớn 🐡:** Giai đoạn chuyển mình, vừa chớm vượt MA20.")
+        st.write("- **Cá Nhỏ 🐟:** Dưới trung bình, dòng tiền yếu - Tạm bỏ qua.")
 
         st.markdown("### 🌡️ Trạng thái dòng nước:")
-        st.write("- **💪 Khỏe:** Cá bơi nhanh hơn thị trường chung (RS dương).")
-        st.write("- **🌊 Sóng:** Mạnh khi Volume > 150% trung bình 20 phiên.")
-        st.write("- **🌡️ Nhiệt độ (RSI):** Nóng (>70), Lạnh (<30).")
-
-        st.markdown("### 🍱 Chiến thuật thả lưới:")
-        st.write("- **Thức ăn:** % dư địa tăng để cá về lại MA20.")
-        st.write("- **🛡️ Niềm tin:** Kết hợp tăng trưởng doanh thu & sức mạnh giá.")
+        st.write("- **💪 Khỏe:** Sức mạnh tương đối (RS) dương - cá đang bơi khỏe hơn thị trường chung.")
+        st.write("- **🌊 Sóng:** Vol > 150% trung bình 20 phiên - dấu hiệu 'cá mập' đang đẩy giá.")
+        st.write("- **🌡️ Nhiệt độ (RSI):** Nóng (>70) dễ điều chỉnh, Lạnh (<30) quá bán.")
         
-	st.divider() 
+        st.divider() 
         
-        # PHẦN 2: LÝ GIẢI CHI TIẾT SOI MÃ
+        # PHẦN CHI TIẾT (Lý giải chuyên sâu cho Tab Phân Tích)
         st.markdown(f"### 💎 Mổ xẻ chi tiết: {t_input}")
-        st.write("- **🛡️ Niềm tin (%):** Tính bằng Tăng trưởng doanh thu + Vị thế kỹ thuật. >80% là Siêu cá hội tụ đủ Thiên thời (Tiền) & Địa lợi (Giá).")
+        st.write("- **🛡️ Niềm tin (%):** Chỉ số đo lường sự đồng thuận giữa Tăng trưởng doanh thu và Vị thế giá kỹ thuật. >80% là Siêu Cá hội tụ đủ Thiên thời & Địa lợi.")
         st.write("- **💰 Định giá 3 kịch bản:**")
-        st.write("    * *Thận trọng:* Vùng giá mua an toàn nhất, đã trừ hao các rủi ro thị trường.")
-        st.write("    * *Cơ sở:* Giá trị hợp lý dựa trên tốc độ tăng trưởng hiện tại.")
-        st.write("    * *Phi thường:* Mục tiêu khi cá bước vào giai đoạn tăng trưởng thần tốc.")
+        st.write("    * *Thận trọng:* Vùng giá mua an toàn nhất (Margin of Safety), đã trừ hao rủi ro.")
+        st.write("    * *Cơ sở:* Giá trị hợp lý của cá trong điều kiện tăng trưởng bình thường.")
+        st.write("    * *Phi thường:* Mục tiêu khi cá bước vào siêu sóng tăng trưởng đột biến.")
         st.write("- **📈 Tuyệt kỹ Ichimoku:**")
-        st.write("    * *Mây (Kumo):* Độ dày của mây thể hiện lực đỡ. Giá trên mây xanh là cá đang ở vùng trời tự do.")
-        st.write("    * *Tím (Tenkan):* Tín hiệu ngắn hạn. Nếu Tenkan cắt lên Kijun: Cá bắt đầu quẫy đuôi tăng tốc.")
-        st.write("    * *Vàng (Kijun):* Đường xương sống. Nếu giá vẫn giữ được Kijun, xu hướng tăng chưa kết thúc.")
-        st.write("    * *Khoảng trống:* Khoảng cách giá và MA20 xa -> Cá đang 'đói' (cần chỉnh về MA20).")
+        st.write("    * *Mây (Kumo):* Vùng hỗ trợ/kháng cự tâm lý. Giá trên mây xanh là vùng trời tăng trưởng tự do.")
+        st.write("    * *Tím (Tenkan):* Tín hiệu tốc độ ngắn hạn (9 phiên). Tenkan cắt lên Kijun là điểm cá quẫy đuôi tăng tốc.")
+        st.write("    * *Vàng (Kijun):* Đường xương sống bền vững (26 phiên). Cá còn nằm trên Kijun là xu hướng tăng còn giữ vững.")
+        st.write("- **🍱 Chiến thuật:** Kiểm tra 'Thức ăn' (% dư địa về MA20). Nếu cá bơi quá xa MA20, hãy đợi nó 'đói' và quay đầu kiểm định lại rồi mới thả lưới.")
 
-    # --- 2.3 KIM CHỈ NAM (Quotes) ---
+    # 3. Kim Chỉ Nam (Quotes)
     st.divider()
     QUOTES = [
         "“Trong đầu tư, thứ đắt đỏ nhất là sự thiếu kiên nhẫn.”",
