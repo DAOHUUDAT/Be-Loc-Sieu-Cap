@@ -44,11 +44,21 @@ with st.sidebar:
     st.header("📓 CẨM NANG")
     with st.expander("📖 Giải mã thông số", expanded=True):
         st.markdown("""
-        - **🛡️ Niềm tin > 80%:** Cá Lớn thực thụ.
-        - **🌊 Sóng:** Mạnh khi Vol > 150% TB 20 phiên.
-        - **🌡️ RSI (Nhiệt độ):** >70 (Nóng), <30 (Lạnh).
-        - **🍱 Thức ăn:** Dư địa tăng trưởng dựa trên MA20/Định giá.
-        - **✂️ ATR:** Điểm cắt lỗ an toàn.
+        ### 🚀 Phân loại hệ sinh thái:
+        - **🚀 SIÊU CÁ:** Hội tụ đủ 3 yếu tố: Giá > MA20 + Vol nổ (>120%) + Khỏe hơn VN-Index.
+        - **Cá Lớn 🐋:** Đang trong xu hướng tăng dài hạn (Giá > MA20 & MA50).
+        - **Cá Đang Lớn 🐡:** Giai đoạn chuyển mình, vừa chớm vượt MA20.
+        - **Cá Nhỏ 🐟:** Dưới trung bình, dòng tiền yếu - Tạm bỏ qua.
+
+        ### 🌡️ Trạng thái dòng nước:
+        - **💪 Khỏe:** Cá đang bơi nhanh hơn thị trường chung (RS dương).
+        - **🌊 Sóng:** Mạnh khi Volume > 150% trung bình 20 phiên (Dấu chân cá mập).
+        - **🌡️ Nhiệt độ (RSI):** - *>70 (Nóng):* Vùng hưng phấn, hạn chế đuổi theo.
+            - *<30 (Lạnh):* Vùng hoảng loạn, chờ dòng tiền quay lại.
+        
+        ### 🍱 Chiến thuật thả lưới:
+        - **Thức ăn:** % dư địa tăng để cá về lại MA20 (vùng cân bằng).
+        - **🛡️ Niềm tin:** Kết hợp giữa tăng trưởng doanh thu và sức mạnh giá.
         """)
 
 st.title("🚀 Bể Lọc v6.3.5: FINAL CLOUD EDITION")
