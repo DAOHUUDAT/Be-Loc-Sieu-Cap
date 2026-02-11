@@ -96,6 +96,15 @@ with st.sidebar:
     import random
     st.info(f"💡 {random.choice(QUOTES)}")
 
+    # --- 2.4 TUYÊN BỐ MIỄN TRỪ TRÁCH NHIỆM ---
+    st.divider()
+    st.caption("""
+    ⚠️ **MIỄN TRỪ TRÁCH NHIỆM:** Mọi dữ liệu và phân tích từ 'Bể Lọc' chỉ mang tính chất tham khảo, hỗ trợ ra quyết định. 
+    Đầu tư tài chính luôn tiềm ẩn rủi ro. Chúng tôi không chịu trách nhiệm cho bất kỳ 
+    tổn thất nào phát sinh từ việc sử dụng các thông tin này. 
+    Hãy luôn tự tìm hiểu và quản trị rủi ro cá nhân.
+    """)
+
 st.title("🚀 Bể Lọc v6.3.7: HÃY CHỌN CÁ ĐÚNG")
 
 # --- 3. TRẠM QUAN TRẮC ĐẠI DƯƠNG (VN-INDEX) ---
