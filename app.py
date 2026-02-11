@@ -49,10 +49,10 @@ with st.sidebar:
     t_input = st.text_input("🔍 SOI MÃ CÁ", "VGC").upper()
     st.divider()
     
-    st.header("📓 CẨM NANG")
+st.header("📓 CẨM NANG")
     with st.expander("📖 Giải mã thông số", expanded=True):
-        st.markdown("""
-        ### 🚀 Phân loại hệ sinh thái:
+        # --- PHẦN 1: TỔNG QUAN (Dành cho Tab Radar) ---
+        st.markdown("### 🚀 Phân loại hệ sinh thái:")
         - **🚀 SIÊU CÁ:** Hội tụ đủ 3 yếu tố: Giá > MA20 + Vol nổ (>120%) + Khỏe hơn VN-Index.
         - **Cá Lớn 🐋:** Đang trong xu hướng tăng dài hạn (Giá > MA20 & MA50).
         - **Cá Đang Lớn 🐡:** Giai đoạn chuyển mình, vừa chớm vượt MA20.
@@ -67,19 +67,20 @@ with st.sidebar:
         ### 🍱 Chiến thuật thả lưới:
         - **Thức ăn:** % dư địa tăng để cá về lại MA20 (vùng cân bằng).
         - **🛡️ Niềm tin:** Kết hợp giữa tăng trưởng doanh thu và sức mạnh giá.
-st.divider() # Vạch ngăn cách để dễ nhìn
+
+st.divider() 
         
         # --- PHẦN 2: CHUYÊN SÂU (Dành cho Tab Chi tiết) ---
         st.markdown(f"### 💎 Phân tích chi tiết: {t_input}")
-        st.markdown("""
-        - **🛡️ Niềm tin:** >80% là Cá cực khỏe về cả nội tại lẫn dòng tiền.
-        - **💰 Định giá:** - *Thận trọng:* Vùng giá an toàn (Margin of Safety).
-            - *Cơ sở:* Giá trị thực tế theo tăng trưởng.
-            - *Phi thường:* Kỳ vọng khi cá vào siêu sóng.
-        - **📈 Ichimoku:** - *Mây (Kumo):* Vùng hỗ trợ/kháng cự tâm lý.
-            - *Tím (Tenkan):* Xu hướng ngắn (9 phiên).
-            - *Vàng (Kijun):* Trục xương sống của cá (26 phiên).
-        """)
+        st.write("- **Niềm tin:** >80% là Cá cực khỏe về cả nội tại lẫn dòng tiền.")
+        st.write("- **Định giá:**")
+        st.write("    * *Thận trọng:* Vùng giá an toàn (Margin of Safety).")
+        st.write("    * *Cơ sở:* Giá trị thực tế theo tăng trưởng.")
+        st.write("    * *Phi thường:* Kỳ vọng khi cá vào siêu sóng.")
+        st.write("- **Kỹ thuật Ichimoku:**")
+        st.write("    * *Mây (Kumo):* Vùng hỗ trợ/kháng cự tâm lý.")
+        st.write("    * *Tím (Tenkan):* Xu hướng ngắn (9 phiên).")
+        st.write("    * *Vàng (Kijun):* Trục xương sống của cá (26 phiên).")
 # --- PHẦN THÊM MỚI: CÂU NÓI NỔI TIẾNG ---
     st.divider()
     QUOTES = [
