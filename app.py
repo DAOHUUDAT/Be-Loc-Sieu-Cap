@@ -81,7 +81,7 @@ with st.sidebar:
     import random
     st.info(f"💡 {random.choice(QUOTES)}")
 
-st.title("🚀 Bể Lọc v6.3.5: FINAL CLOUD EDITION")
+st.title("🚀 Bể Lọc v6.3.7: HÃY CHỌN CÁ ĐÚNG")
 
 # --- 3. TRẠM QUAN TRẮC ĐẠI DƯƠNG (VN-INDEX) ---
 inf_factor = 1.0 
@@ -103,7 +103,7 @@ except: pass
 tab_radar, tab_analysis, tab_history = st.tabs(["🎯 RADAR ELITE", "💎 CHI TIẾT SIÊU CÁ", "📓 SỔ VÀNG"])
 
 with tab_radar:
-    st.subheader("🤖 Top 20 Đệ Tử Cá (Chiến thuật Trường Money)")
+    st.subheader("🤖 Top 20 SIÊU CÁ")
     
     # Hiển thị trạng thái Đại dương để làm tham chiếu
     status_color = "green" if inf_factor > 1 else "red"
@@ -195,24 +195,46 @@ with tab_analysis:
         c2.metric("🏠 Cơ sở", f"{p_base:,.0f}")
         c3.metric("🚀 Phi thường", f"{curr_p * (1 + rev_growth * 2) * inf_factor:,.0f}")
 
-        # --- PHẦN MỚI: BIỂU ĐỒ TÀI CHÍNH 5 QUÝ ---
-        st.subheader("📊 Sức khỏe tài chính 5 Quý gần nhất")
+        # --- PHẦN ĐÃ TINH CHỈNH: BIỂU ĐỒ TÀI CHÍNH 5 QUÝ CÓ SỐ LIỆU ---
+        st.subheader("📊 Sức khỏe tài chính 5 Quý gần nhất (Tỷ VNĐ)")
         if not fin_q.empty:
-            # Lấy Doanh thu và Lợi nhuận ròng (Net Income)
-            # Lưu ý: Một số mã có tên hàng khác nhau, dùng .get để tránh lỗi
-            q_rev = fin_q.loc['Total Revenue'].iloc[:5][::-1] 
+            # Lấy Doanh thu và Lợi nhuận ròng, chia cho 1 tỷ để đổi đơn vị
+            q_rev = (fin_q.loc['Total Revenue'].iloc[:5][::-1]) / 1e9 
             try:
-                q_net = fin_q.loc['Net Income'].iloc[:5][::-1]
+                q_net = (fin_q.loc['Net Income'].iloc[:5][::-1]) / 1e9
             except:
-                q_net = fin_q.loc['Net Income From Continuing Operation Net Extraordinaries'].iloc[:5][::-1]
+                q_net = (fin_q.loc['Net Income From Continuing Operation Net Extraordinaries'].iloc[:5][::-1]) / 1e9
             
             fig_fin = go.Figure()
-            fig_fin.add_trace(go.Bar(x=q_rev.index.astype(str), y=q_rev, name='Doanh thu', marker_color='#007bff'))
-            fig_fin.add_trace(go.Bar(x=q_net.index.astype(str), y=q_net, name='Lợi nhuận', marker_color='#FFD700'))
-            fig_fin.update_layout(barmode='group', height=300, margin=dict(l=0,r=0,t=20,b=0), template="plotly_white")
+            
+            # Thêm cột Doanh thu với số liệu hiển thị
+            fig_fin.add_trace(go.Bar(
+                x=q_rev.index.astype(str), 
+                y=q_rev, 
+                name='Doanh thu', 
+                marker_color='#007bff',
+                text=q_rev.apply(lambda x: f"{x:,.0f}"), # Hiển thị số nguyên tỷ VNĐ
+                textposition='auto'
+            ))
+            
+            # Thêm cột Lợi nhuận với số liệu hiển thị
+            fig_fin.add_trace(go.Bar(
+                x=q_net.index.astype(str), 
+                y=q_net, 
+                name='Lợi nhuận', 
+                marker_color='#FFD700',
+                text=q_net.apply(lambda x: f"{x:,.1f}"), # Hiển thị 1 chữ số thập phân cho lợi nhuận
+                textposition='auto'
+            ))
+            
+            fig_fin.update_layout(
+                barmode='group', 
+                height=350, 
+                margin=dict(l=0,r=0,t=30,b=0), 
+                template="plotly_white",
+                yaxis_title="Tỷ VNĐ"
+            )
             st.plotly_chart(fig_fin, use_container_width=True)
-        else:
-            st.warning("Không tìm thấy dữ liệu tài chính quý.")
 
         # --- 2. BIỂU ĐỒ KỸ THUẬT (GIỮ NGUYÊN TOÀN BỘ) ---
         st.subheader(f"📈 Phân tích kỹ thuật {t_input}")
