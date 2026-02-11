@@ -45,52 +45,74 @@ with st.sidebar:
         * **📊 Vol Avg:** Đường trắng so sánh khối lượng trung bình.
         * **🍱 Thức ăn:** Dư địa tăng trưởng kỳ vọng.
         * **✂️ ATR:** Điểm tựa quản trị rủi ro.
+	* **🥇 ĐẠI CA (Score >=5):** Cá mập đã vào, thức ăn sạch, vị thế tốt.
+	* **🥈 CẬN VỆ (Score 3-4):** Tiềm năng cao, đang tích lũy.
+   	* **🥉 LÍNH MỚI (Score <3):** Đang tầm soát, chưa đủ xung lực.
+	* **🌊 Sóng Ngầm:** Khối lượng vọt >150% trung bình 20 phiên.
+    	* **📈 Định giá Co giãn:** Đã tính phí rủi ro thị trường (VN-Index).
         """)
 
-st.title("🚀 Bể Lọc v6.3.3: FINAL PERFECTION")
+st.title("🚀 Bể Lọc v6.3.4: FINAL PERFECTION")
 
-# --- 3. TRẠM QUAN TRẮC ĐẠI DƯƠNG ---
-inf_factor = 1.0
+# --- 3. TRẠM QUAN TRẮC ĐẠI DƯƠNG (BỌC THÉP CHỐNG TẮC ỐNG) ---
 try:
     vni = yf.download("^VNI", period="150d", progress=False)
     if not vni.empty:
         if isinstance(vni.columns, pd.MultiIndex): vni.columns = vni.columns.get_level_values(0)
-        v_c = vni['Close'].iloc[-1]
-        v_h26 = vni['High'].rolling(26).max(); v_l26 = vni['Low'].rolling(26).min()
-        v_h9 = vni['High'].rolling(9).max(); v_l9 = vni['Low'].rolling(9).min()
-        v_sa = (((v_h9+v_l9)/2 + (v_h26+v_l26)/2)/2).shift(26).iloc[-1]
-        inf_factor = 1.15 if v_c > v_sa else 0.85
-        st.info(f"🌊 Đại Dương: {'🟢 THẢ LƯỚI (Sóng Thuận)' if v_c > v_sa else '🔴 ĐÁNH KẺNG (Sóng Nghịch)'}")
-except: pass
+        v_c = float(vni['Close'].iloc[-1])
+        vh26 = vni['High'].rolling(26).max(); vl26 = vni['Low'].rolling(26).min()
+        vh9 = vni['High'].rolling(9).max(); vl9 = vni['Low'].rolling(9).min()
+        vsa = (((vh9+vl9)/2 + (vh26+vl26)/2)/2).shift(26).iloc[-1]
+        
+        inf_factor = 1.1 if v_c > vsa else 0.9
+        
+        st.subheader(f"🌊 Đại Dương: {'🟢 THẢ LƯỚI' if v_c > vsa else '🔴 ĐÁNH KẺNG'}")
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Chỉ số VN-Index", f"{v_c:.2f}")
+        c2.info(f"Hệ số Co giãn Lạm phát: {inf_factor}x")
+        c3.success("TRONG ẤM NGOÀI ÊM" if v_c > vsa else "CẢNH BÁO RỦI RO")
+except: st.warning("📡 Vệ tinh đại dương đang kết nối lại... Hệ số mặc định: 1.0x")
 
 # --- 4. HỆ THỐNG TABS ---
 tab_radar, tab_analysis, tab_history = st.tabs(["🎯 RADAR", "💎 CHI TIẾT", "📓 SỔ VÀNG"])
 
 with tab_radar:
-    st.subheader("🤖 Top 20 Đệ Tử Cá")
-    elite_20 = ["DGC", "MWG", "FPT", "TCB", "SSI", "HPG", "GVR", "CTR", "DBC", "VNM", "STB", "MBB", "ACB", "KBC", "VGC", "PVS", "PVD", "ANV", "VHC", "REE"]
-    radar_list = []
-    
-    with st.spinner('Đang tầm soát thực phẩm...'):
-        for tk in elite_20:
-            try:
-                d = yf.download(f"{tk}.VN", period="40d", progress=False)
-                if not d.empty:
-                    if isinstance(d.columns, pd.MultiIndex): d.columns = d.columns.get_level_values(0)
-                    v_now = d['Volume'].iloc[-1]; v_avg = d['Volume'].rolling(20).mean().iloc[-1]
-                    p_c = d['Close'].iloc[-1]
-                    ma20 = d['Close'].rolling(20).mean().iloc[-1]
-                    
-                    loai = "Cá Lớn 🐋" if p_c > ma20 and v_now > v_avg else "Cá Nhỏ 🐟"
-                    thuc_an = f"{((ma20/p_c)-1)*100:+.1f}%" if p_c < ma20 else "Đang no"
-                    
-                    radar_list.append({
-                        "Mã": tk, "Giá": f"{p_c:,.0f}",
-                        "Sóng": "🌊 Lớn" if v_now > v_avg * 1.5 else "☕ Lặng",
-                        "Loại": loai, "Thức Ăn": thuc_an,
-                        "Lệnh": "MUA/GIỮ" if loai == "Cá Lớn 🐋" else "QUAN SÁT"
-                    })
-            except: continue
+    st.subheader("🤖 Radar Tầm Soát 20 Đệ Tử Cá")
+elite_20 = [
+    "DGC", "MWG", "FPT", "TCB", "SSI", "HPG", "GVR", "CTR", "DBC", "VNM",
+    "STB", "MBB", "ACB", "KBC", "VGC", "PVS", "PVD", "ANV", "VHC", "REE"
+]
+
+radar_data = []
+for ticker in elite_20:
+    try:
+        t_obj = yf.Ticker(f"{ticker}.VN")
+        t_df = t_obj.history(period="60d")
+        if isinstance(t_df.columns, pd.MultiIndex): t_df.columns = t_df.columns.get_level_values(0)
+        
+        # Sóng Ngầm
+        v_now = t_df['Volume'].iloc[-1]; v_avg = t_df['Volume'].rolling(20).mean().iloc[-1]
+        wave_score = 2 if v_now > v_avg * 1.5 else 0
+        
+        # Thức ăn sạch (G)
+        fin = t_obj.quarterly_financials
+        g_rate = ((fin.loc['Total Revenue'].iloc[0] / fin.loc['Total Revenue'].iloc[4]) - 1) * 100
+        g_score = 3 if g_rate > 30 else (1 if g_rate > 0 else -1)
+        
+        # Vị thế Kumo
+        h26_t = t_df['High'].rolling(26).max(); l26_t = t_df['Low'].rolling(26).min()
+        vsa_t = (((t_df['High'].rolling(9).max()+t_df['Low'].rolling(9).min())/2 + (h26_t+l26_t)/2)/2).shift(26).iloc[-1]
+        pos_score = 2 if t_df['Close'].iloc[-1] > vsa_t else 0
+        
+        total_score = wave_score + g_score + pos_score
+        rank = "🥇 ĐẠI CA" if total_score >= 5 else ("🥈 CẬN VỆ" if total_score >= 3 else "🥉 LÍNH MỚI")
+        
+        radar_data.append({
+            "Ưu tiên": rank, "Mã": ticker, "Điểm": total_score,
+            "Sóng Ngầm": "🌊 MẠNH" if wave_score > 0 else "Yên ắng",
+            "Thức ăn (G)": f"{g_rate:.1f}%", "Giá Hiện Tại": f"{t_df['Close'].iloc[-1]:,.0f}"
+        })
+    except: continue
     st.table(pd.DataFrame(radar_list))
 
 with tab_analysis:
