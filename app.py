@@ -31,11 +31,13 @@ def compute_rsi(data, window=14):
 
 # --- 2. SIDEBAR: TRI KỶ & CẨM NANG CHIẾN THUẬT ---
 with st.sidebar:
-    try:
-        # Ảnh tri kỷ luôn xuất hiện ở góc trái trên cùng
-        st.image("https://raw.githubusercontent.com/daohuudat/be-loc-sieu-cap/main/tri-ky.jpg", use_container_width=True)
-    except:
-        st.info("🖼️ [Hệ thống đang nạp ảnh tri kỷ...]")
+    # --- PHẦN SỬA LẠI ĐỂ HIỂN THỊ ẢNH ---
+    col1, col2, col3 = st.columns([1, 4, 1]) # Tạo cột để căn giữa ảnh
+    with col2:
+        st.image("https://raw.githubusercontent.com/daohuudat/be-loc-sieu-cap/main/tri-ky.jpg", 
+                 caption="Người đồng hành",
+                 use_container_width=True)
+    # ---------------------------------------
     
     st.header("🎮 ĐÀI CHỈ HUY")
     t_input = st.text_input("🔍 SOI MÃ CÁ", "VGC").upper()
@@ -60,6 +62,18 @@ with st.sidebar:
         - **Thức ăn:** % dư địa tăng để cá về lại MA20 (vùng cân bằng).
         - **🛡️ Niềm tin:** Kết hợp giữa tăng trưởng doanh thu và sức mạnh giá.
         """)
+# --- PHẦN THÊM MỚI: CÂU NÓI NỔI TIẾNG ---
+    st.divider()
+    QUOTES = [
+        "“Trong đầu tư, thứ đắt đỏ nhất là sự thiếu kiên nhẫn.”",
+        "“Hãy mua con cá khỏe nhất trong dòng nước yếu nhất.”",
+        "“Đừng cố bắt cá khi đại dương đang có bão lớn.”",
+        "“Siêu cá không xuất hiện mỗi ngày, hãy kiên nhẫn đợi điểm nổ.”",
+        "“Kỷ luật là thứ tách biệt ngư dân chuyên nghiệp và kẻ đi dạo.”",
+        "“Giá là thứ bạn trả, giá trị là thứ con cá mang lại.”"
+    ]
+    import random
+    st.info(f"💡 {random.choice(QUOTES)}")
 
 st.title("🚀 Bể Lọc v6.3.5: FINAL CLOUD EDITION")
 
