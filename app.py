@@ -67,7 +67,7 @@ st.header("📓 CẨM NANG")
         st.write("- **Thức ăn:** % dư địa tăng để cá về lại MA20.")
         st.write("- **🛡️ Niềm tin:** Kết hợp tăng trưởng doanh thu & sức mạnh giá.")
         
-st.divider() 
+	st.divider() 
         
         # PHẦN 2: LÝ GIẢI CHI TIẾT SOI MÃ
         st.markdown(f"### 💎 Mổ xẻ chi tiết: {t_input}")
