@@ -4,21 +4,35 @@ import pandas as pd
 import plotly.graph_objects as go
 from datetime import datetime
 
-# --- 1. CẤU HÌNH & GIAO DIỆN ---
-st.set_page_config(page_title="HÃY CHỌN CÁ ĐÚNG v6.0", layout="wide")
+# --- 1. CẤU HÌNH ADAPTIVE (Sáng/Tối đều cân được) ---
+st.set_page_config(page_title="HÃY CHỌN CÁ ĐÚNG v6.1", layout="wide")
 
+# CSS thông minh: Tự nhận diện nền để đổi màu chữ
 st.markdown("""
     <style>
-    .stApp { background-color: #fcfcfc; color: #1e1e1e; }
-    [data-testid="stMetricValue"] { font-size: 1.8rem !important; color: #007bff !important; font-weight: bold; }
-    .stTabs [data-baseweb="tab-list"] { background-color: #ffffff; border-radius: 10px; padding: 5px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-    .stExpander { background-color: #ffffff !important; border: 1px solid #e0e0e0 !important; border-radius: 12px !important; }
+    .stApp { transition: all 0.5s; }
+    [data-testid="stMetricValue"] { font-size: 1.8rem !important; font-weight: bold; }
+    /* Fix lỗi chữ khó nhìn trong Expander */
+    .stExpander { border-radius: 10px !important; border: 1px solid #444; }
+    .stDataFrame { border-radius: 10px; }
+    /* Đảm bảo ảnh luôn nằm giữa */
+    .stImage > img { border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
     </style>
     """, unsafe_allow_html=True)
 
 if 'history_log' not in st.session_state: st.session_state['history_log'] = []
 
-# --- 2. SIDEBAR: CẨM NANG & ĐIỀU KHIỂN ---
+# --- 2. HÀM LẤY DỮ LIỆU AN TOÀN (CHỐNG LỖI NAN) ---
+def get_safe_data(ticker):
+    try:
+        obj = yf.Ticker(f"{ticker}.VN")
+        df = obj.history(period="1y")
+        if df.empty or len(df) < 50: return None, None, None
+        if isinstance(df.columns, pd.MultiIndex): df.columns = df.columns.get_level_values(0)
+        return obj, df, obj.info
+    except: return None, None, None
+
+# --- 3. SIDEBAR: CẨM NANG VÀ ĐIỀU KHIỂN ---
 with st.sidebar:
     st.header("🎮 ĐÀI CHỈ HUY")
     t_input = st.text_input("🔍 SOI MÃ CÁ", "VGC").upper()
@@ -26,108 +40,94 @@ with st.sidebar:
     st.header("📓 CẨM NANG CHIẾN THUẬT")
     with st.expander("📖 Giải mã thông số", expanded=True):
         st.markdown("""
-        * **🛡️ Niềm tin > 80%:** Cá Siêu cấp.
-        * **🌊 Sóng Ngầm:** Vol > 150%.
-        * **📈 Co giãn:** Theo nhiệt độ VNI.
-        * **✂️ ATR:** Cắt lỗ (2x), Chốt lời (3x).
+        * **🛡️ Niềm tin > 80%:** Cá Lớn thực thụ.
+        * **🌊 Sóng Ngầm:** Vol bùng nổ > 150%.
+        * **📈 Co giãn:** Tự động theo Index.
+        * **✂️ ATR:** Điểm tựa quản trị rủi ro.
         """)
 
-st.title("🔱 HÃY CHỌN CÁ ĐÚNG v6.0")
+st.title("🔱 HÃY CHỌN CÁ ĐÚNG v6.1")
 
-# --- 3. TRẠM QUAN TRẮC ĐẠI DƯƠNG ---
+# --- 4. TRẠM QUAN TRẮC VN-INDEX (Hàn ống Co giãn) ---
+inf_factor = 1.0
 try:
-    vni = yf.download("^VNI", period="150d", progress=False)
-    if not vni.empty:
-        if isinstance(vni.columns, pd.MultiIndex): vni.columns = vni.columns.get_level_values(0)
-        v_c = float(vni['Close'].iloc[-1])
-        vh26_v = vni['High'].rolling(26).max(); vl26_v = vni['Low'].rolling(26).min()
-        vh9_v = vni['High'].rolling(9).max(); vl9_v = vni['Low'].rolling(9).min()
-        vsa = (((vh9_v+vl9_v)/2 + (vh26_v+vl26_v)/2)/2).shift(26).iloc[-1]
-        inf_factor = 1.1 if v_c > vsa else 0.85
-        st.info(f"🌊 **Đại Dương:** {'🟢 THẢ LƯỚI' if v_c > vsa else '🔴 ĐÁNH KẺNG'}")
-        c1, c2 = st.columns(2)
-        c1.metric("VN-Index", f"{v_c:.1f}")
-        c2.metric("Hệ số Co giãn", f"{inf_factor}x")
-except: pass
+    vni_df = yf.download("^VNI", period="100d", progress=False)
+    if not vni_df.empty:
+        if isinstance(vni_df.columns, pd.MultiIndex): vni_df.columns = vni_df.columns.get_level_values(0)
+        v_close = vni_df['Close'].iloc[-1]
+        v_h26 = vni_df['High'].rolling(26).max(); v_l26 = vni_df['Low'].rolling(26).min()
+        v_h9 = vni_df['High'].rolling(9).max(); v_l9 = vni_df['Low'].rolling(9).min()
+        v_sa = (((v_h9+v_l9)/2 + (v_h26+v_l26)/2)/2).shift(26).iloc[-1]
+        inf_factor = 1.15 if v_close > v_sa else 0.85
+        st.write(f"🌊 **Trạng thái biển:** {'🟢 THẢ LƯỚI' if v_close > v_sa else '🔴 ĐÁNH KẺNG'}")
+except: st.warning("⚠️ Mất kết nối radar đại dương!")
 
-# --- 4. HỆ THỐNG TABS ---
+# --- 5. HỆ THỐNG TABS ---
 tab_radar, tab_analysis, tab_history = st.tabs(["🎯 RADAR ELITE", "💎 SOI CHI TIẾT", "📓 SỔ VÀNG"])
 
 with tab_radar:
-    # NHÚNG BỨC TRANH TRI KỶ CỦA CHÚNG TA VÀO ĐÂY
-    st.image("https://r.jina.ai/i/9e9e9e...", caption="Sự kết hợp giữa Trí tuệ con người & Sức mạnh AI - AI Invest Partnership", use_container_width=True)
+    # SỬA LỖI ẢNH: Sử dụng link trực tiếp hoặc link GitHub
+    st.image("https://github.com/DAOHUUDAT/Be-Loc-Sieu-Cap/blob/main/anh-tri-ky.jpg?raw=true", 
+             caption="Sự kết hợp giữa Trí tuệ con người & AI", use_container_width=True)
     
-    st.subheader("🤖 Top 20 Đệ Tử Cá Ưu Tiên")
+    st.subheader("🤖 Top 20 Đệ Tử Cá (Dòng chảy v5.5.1)")
     elite_20 = ["DGC", "MWG", "FPT", "TCB", "SSI", "HPG", "GVR", "CTR", "DBC", "VNM", "STB", "MBB", "ACB", "KBC", "VGC", "PVS", "PVD", "ANV", "VHC", "REE"]
-    radar_data = []
-    with st.spinner('Đang quét biển...'):
-        for ticker in elite_20:
-            try:
-                t_obj = yf.Ticker(f"{ticker}.VN")
-                t_df = t_obj.history(period="60d")
-                if isinstance(t_df.columns, pd.MultiIndex): t_df.columns = t_df.columns.get_level_values(0)
-                v_now = t_df['Volume'].iloc[-1]; v_avg = t_df['Volume'].rolling(20).mean().iloc[-1]
-                fin = t_obj.quarterly_financials
-                g_rate = ((fin.loc['Total Revenue'].iloc[0] / fin.loc['Total Revenue'].iloc[4]) - 1) * 100
-                score = (2 if v_now > v_avg * 1.5 else 0) + (3 if g_rate > 25 else 1)
-                radar_data.append({"Hạng": "🥇" if score >= 4 else "🥈", "Mã": ticker, "Điểm": score, "G": f"{g_rate:.0f}%", "Giá": f"{t_df['Close'].iloc[-1]:,.0f}"})
-            except: continue
-    st.dataframe(pd.DataFrame(radar_data).sort_values(by="Điểm", ascending=False), use_container_width=True, hide_index=True)
+    radar_list = []
+    with st.spinner('Đang quét lưới...'):
+        for tk in elite_20:
+            _, df_tk, _ = get_safe_data(tk)
+            if df_tk is not None:
+                v_now = df_tk['Volume'].iloc[-1]; v_avg = df_tk['Volume'].rolling(20).mean().iloc[-1]
+                score = 3 if v_now > v_avg * 1.5 else 1
+                radar_list.append({"Mã": tk, "Điểm": score, "Giá": f"{df_tk['Close'].iloc[-1]:,.0f}", "Sóng": "🌊" if v_now > v_avg * 1.5 else "☕"})
+    st.dataframe(pd.DataFrame(radar_list).sort_values("Điểm", ascending=False), use_container_width=True, hide_index=True)
 
 with tab_analysis:
-    try:
-        s_obj = yf.Ticker(f"{t_input}.VN")
-        data = s_obj.history(period="1y")
-        if isinstance(data.columns, pd.MultiIndex): data.columns = data.columns.get_level_values(0)
-        curr_p = float(data['Close'].iloc[-1])
-        is_df = s_obj.financials; bs = s_obj.balance_sheet
+    s_obj, s_df, s_info = get_safe_data(t_input)
+    if s_df is not None:
+        curr_p = s_df['Close'].iloc[-1]
         
-        # 🛡️ NIỀM TIN & ĐỊNH GIÁ (FULL ỐNG)
-        g_val = ((is_df.loc['Total Revenue'].iloc[0] / is_df.loc['Total Revenue'].iloc[4]) - 1)
-        margin = ((is_df.loc['Total Revenue'].iloc[0] - is_df.loc['Cost Of Revenue'].iloc[0]) / is_df.loc['Total Revenue'].iloc[0]) * 100
-        debt = bs.loc['Total Debt'].iloc[0] if 'Total Debt' in bs.index else 0
-        debt_ratio = debt / bs.loc['Stockholders Equity'].iloc[0]
-        
-        trust = 0
-        if g_val > 0.25: trust += 30
-        if margin > 15: trust += 20
-        if debt_ratio < 1.2: trust += 20
-        if curr_p > data['Close'].rolling(50).mean().iloc[-1]: trust += 30
-        
-        st.markdown(f"### 🛡️ Niềm tin Tầm soát: {trust}%")
-        st.progress(trust / 100)
-        
-        c1, c2 = st.columns(2)
-        c1.metric("🐢 Thận trọng", f"{curr_p * (1 + g_val * 0.4) * inf_factor:,.0f}")
-        c2.metric("🏠 Cơ sở", f"{curr_p * (1 + g_val) * inf_factor:,.0f}")
-        st.metric("🚀 Phi thường", f"{curr_p * (1 + g_val * 2) * inf_factor:,.0f}")
+        # --- KHÔI PHỤC ĐƯỜNG ỐNG NIỀM TIN v5.5.1 ---
+        try:
+            fin = s_obj.quarterly_financials
+            rev_g = (fin.loc['Total Revenue'].iloc[0] / fin.loc['Total Revenue'].iloc[4] - 1) if len(fin.columns) > 4 else 0.1
+            trust_score = int(min(100, (rev_g * 100) + (50 if curr_p > s_df['Close'].rolling(50).mean().iloc[-1] else 0)))
+        except: trust_score = 50; rev_g = 0.1
 
-        # 📈 BIỂU ĐỒ ICHIMOKU & ATR (ĐÃ HÀN KÍN)
-        data['ATR'] = pd.concat([(data['High']-data['Low']), (data['High']-data['Close'].shift()).abs(), (data['Low']-data['Close'].shift()).abs()], axis=1).max(axis=1).rolling(14).mean()
-        h9 = data['High'].rolling(9).max(); l9 = data['Low'].rolling(9).min(); data['tenkan'] = (h9+l9)/2
-        h26 = data['High'].rolling(26).max(); l26 = data['Low'].rolling(26).min(); data['kijun'] = (h26+l26)/2
-        data['sa'] = ((data['tenkan'] + data['kijun'])/2).shift(26)
-        data['sb'] = ((data['High'].rolling(52).max() + data['Low'].rolling(52).min())/2).shift(26)
+        st.subheader(f"🛡️ Niềm tin {t_input}: {trust_score}%")
+        st.progress(trust_score / 100)
+
+        # ĐỊNH GIÁ CO GIÃN (HÀN LẠI)
+        st.write(f"📍 Giá hiện tại: **{curr_p:,.0f}**")
+        c1, c2, c3 = st.columns(3)
+        c1.metric("🐢 Thận trọng", f"{curr_p * (1 + rev_g * 0.5) * inf_factor:,.0f}")
+        c2.metric("🏠 Cơ sở", f"{curr_p * (1 + rev_g) * inf_factor:,.0f}")
+        c3.metric("🚀 Phi thường", f"{curr_p * (1 + rev_g * 2) * inf_factor:,.0f}")
+
+        # --- BIỂU ĐỒ ICHIMOKU & ATR (FULL ỐNG) ---
+        s_df['ATR'] = pd.concat([(s_df['High']-s_df['Low']), (s_df['High']-s_df['Close'].shift()).abs(), (s_df['Low']-s_df['Close'].shift()).abs()], axis=1).max(axis=1).rolling(14).mean()
+        h9 = s_df['High'].rolling(9).max(); l9 = s_df['Low'].rolling(9).min(); s_df['tenkan'] = (h9+l9)/2
+        h26 = s_df['High'].rolling(26).max(); l26 = s_df['Low'].rolling(26).min(); s_df['kijun'] = (h26+l26)/2
+        s_df['sa'] = ((s_df['tenkan'] + s_df['kijun'])/2).shift(26)
+        s_df['sb'] = ((s_df['High'].rolling(52).max() + s_df['Low'].rolling(52).min())/2).shift(26)
         
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=data.index, y=data['sa'], line=dict(width=0), showlegend=False))
-        fig.add_trace(go.Scatter(x=data.index, y=data['sb'], line=dict(width=0), fill='tonexty', fillcolor='rgba(0, 123, 255, 0.1)', name='Mây Kumo'))
-        fig.add_trace(go.Candlestick(x=data.index, open=data['Open'], high=data['High'], low=data['Low'], close=data['Close'], name='Giá'))
-        fig.add_trace(go.Scatter(x=data.index, y=data['tenkan'], line=dict(color='pink', width=1.5), name='Tenkan'))
-        fig.add_trace(go.Scatter(x=data.index, y=data['kijun'], line=dict(color='#FFD700', width=1.5), name='Kijun'))
+        fig.add_trace(go.Scatter(x=s_df.index, y=s_df['sa'], line=dict(width=0), showlegend=False))
+        fig.add_trace(go.Scatter(x=s_df.index, y=s_df['sb'], line=dict(width=0), fill='tonexty', fillcolor='rgba(0, 150, 255, 0.15)', name='Mây Kumo'))
+        fig.add_trace(go.Candlestick(x=s_df.index, open=s_df['Open'], high=s_df['High'], low=s_df['Low'], close=s_df['Close'], name='Giá'))
+        fig.add_trace(go.Scatter(x=s_df.index, y=s_df['tenkan'], line=dict(color='#ff33cc', width=1.5), name='Tenkan'))
+        fig.add_trace(go.Scatter(x=s_df.index, y=s_df['kijun'], line=dict(color='#ffcc00', width=1.5), name='Kijun'))
         
-        catr = float(data['ATR'].iloc[-1])
-        fig.add_hline(y=curr_p + (3*catr), line_dash="dash", line_color="cyan", annotation_text="TARGET")
-        fig.add_hline(y=curr_p - (2*catr), line_dash="dash", line_color="red", annotation_text="CUT LOSS")
+        # Target/Cutloss
+        atr_v = float(s_df['ATR'].iloc[-1])
+        fig.add_hline(y=curr_p + (3*atr_v), line_dash="dash", line_color="#00ffff", annotation_text="TARGET")
+        fig.add_hline(y=curr_p - (2*atr_v), line_dash="dash", line_color="#ff4444", annotation_text="CUT LOSS")
         
-        fig.update_layout(template="plotly_white", height=450, margin=dict(l=0,r=0,t=0,b=0), xaxis_rangeslider_visible=False)
+        fig.update_layout(template="plotly_dark" if st.get_option("theme.base") == "dark" else "plotly_white", 
+                          height=500, margin=dict(l=0,r=0,t=0,b=0), xaxis_rangeslider_visible=False)
         st.plotly_chart(fig, use_container_width=True)
-
-        # 📊 DOANH THU 5 QUÝ
-        rev_5q = is_df.loc['Total Revenue'].iloc[:5][::-1]
-        st.plotly_chart(go.Figure(data=[go.Bar(x=rev_5q.index.strftime('%Q/%Y'), y=rev_5q, marker_color='#007bff')]).update_layout(title="Chu kỳ 5 quý", template="plotly_white", height=300), use_container_width=True)
-
-    except: st.info("Chọn mã ở Sidebar để soi chi tiết.")
+    else:
+        st.error(f"❌ Không tìm thấy dữ liệu cho mã {t_input}. Hãy kiểm tra lại kết nối mạng!")
 
 with tab_history:
-    if st.session_state.history_log: st.table(pd.DataFrame(st.session_state.history_log))
+    st.table(pd.DataFrame(st.session_state.history_log) if st.session_state.history_log else "Sổ vàng đang trống.")
