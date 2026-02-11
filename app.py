@@ -31,13 +31,19 @@ def compute_rsi(data, window=14):
 
 # --- 2. SIDEBAR: TRI KỶ & CẨM NANG CHIẾN THUẬT ---
 with st.sidebar:
-    # --- PHẦN SỬA LẠI ĐỂ HIỂN THỊ ẢNH ---
-    col1, col2, col3 = st.columns([1, 4, 1]) # Tạo cột để căn giữa ảnh
-    with col2:
-        st.image("https://raw.githubusercontent.com/daohuudat/be-loc-sieu-cap/main/tri-ky.jpg", 
-                 caption="Người đồng hành",
-                 use_container_width=True)
-    # ---------------------------------------
+    # Sử dụng Container để bọc ảnh và xử lý lỗi hiển thị
+    img_url = "https://raw.githubusercontent.com/daohuudat/be-loc-sieu-cap/main/tri-ky.jpg"
+    
+    # Cách hiển thị ảnh an toàn hơn
+    st.markdown(
+        f"""
+        <div style="display: flex; justify-content: center;">
+            <img src="{img_url}" style="width: 100%; border-radius: 15px; border: 2px solid #007bff; margin-bottom: 20px;" 
+                 onerror="this.onerror=null; this.src='https://cdn-icons-png.flaticon.com/512/1144/1144760.png';">
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
     
     st.header("🎮 ĐÀI CHỈ HUY")
     t_input = st.text_input("🔍 SOI MÃ CÁ", "VGC").upper()
