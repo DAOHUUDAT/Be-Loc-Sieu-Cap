@@ -281,9 +281,21 @@ with tab_analysis:
         st.error(f"Đang tầm soát mã cá {t_input}...")
 
 with tab_history:
+    st.subheader("📓 DANH SÁCH CÁ ĐÃ TẦM SOÁT")
     if st.session_state.history_log:
+        # Hiển thị bảng danh sách
         st.table(pd.DataFrame(st.session_state.history_log))
+        
+        # --- PHẦN GHI CHÚ BỔ SUNG ---
+        st.info("""
+        **📌 Ghi chú cho Ngư dân:**
+        * **Giá lưu:** Là mức giá tại thời điểm bro quyết định đưa cá vào tầm ngắm. Hãy so sánh với giá hiện tại để thấy hiệu quả.
+        * **Kỷ luật:** Chỉ nên giữ tối đa 5-7 mã trong Sổ Vàng để tập trung nguồn lực.
+        * **Lưu ý:** Dữ liệu này sẽ tự làm sạch khi bro đóng trình duyệt hoặc F5. Hãy ghi lại ra sổ tay nếu đó là 'Siêu cá' dài hạn.
+        """)
+        
         if st.button("🗑️ Làm sạch sổ"):
             st.session_state.history_log = []
             st.rerun()
-    else: st.info("Sổ vàng vẫn đang đợi những con cá lớn.")
+    else: 
+        st.info("Sổ vàng vẫn đang đợi những con cá lớn. Hãy nhấn nút 'Lưu vào Sổ Vàng' ở Tab Chi tiết để ghi lại mục tiêu.")
