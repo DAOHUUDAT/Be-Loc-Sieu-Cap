@@ -67,6 +67,18 @@ with st.sidebar:
         ### 🍱 Chiến thuật thả lưới:
         - **Thức ăn:** % dư địa tăng để cá về lại MA20 (vùng cân bằng).
         - **🛡️ Niềm tin:** Kết hợp giữa tăng trưởng doanh thu và sức mạnh giá.
+st.divider() # Vạch ngăn cách để dễ nhìn
+        
+        # --- PHẦN 2: CHUYÊN SÂU (Dành cho Tab Chi tiết) ---
+        st.markdown(f"### 💎 Phân tích chi tiết: {t_input}")
+        st.markdown("""
+        - **🛡️ Niềm tin:** >80% là Cá cực khỏe về cả nội tại lẫn dòng tiền.
+        - **💰 Định giá:** - *Thận trọng:* Vùng giá an toàn (Margin of Safety).
+            - *Cơ sở:* Giá trị thực tế theo tăng trưởng.
+            - *Phi thường:* Kỳ vọng khi cá vào siêu sóng.
+        - **📈 Ichimoku:** - *Mây (Kumo):* Vùng hỗ trợ/kháng cự tâm lý.
+            - *Tím (Tenkan):* Xu hướng ngắn (9 phiên).
+            - *Vàng (Kijun):* Trục xương sống của cá (26 phiên).
         """)
 # --- PHẦN THÊM MỚI: CÂU NÓI NỔI TIẾNG ---
     st.divider()
@@ -100,6 +112,7 @@ try:
 except: pass
 
 # --- 4. HỆ THỐNG TABS ---
+# Thay dòng st.tabs cũ bằng dòng này để lưu trạng thái vào biến selected_tab
 tab_radar, tab_analysis, tab_history = st.tabs(["🎯 RADAR ELITE", "💎 CHI TIẾT SIÊU CÁ", "📓 SỔ VÀNG"])
 
 with tab_radar:
