@@ -75,8 +75,14 @@ with st.sidebar:
         st.write("    * *Mây (Kumo):* Vùng hỗ trợ/kháng cự tâm lý. Giá trên mây xanh là vùng trời tăng trưởng tự do.")
         st.write("    * *Tím (Tenkan):* Tín hiệu tốc độ ngắn hạn (9 phiên). Tenkan cắt lên Kijun là điểm cá quẫy đuôi tăng tốc.")
         st.write("    * *Vàng (Kijun):* Đường xương sống bền vững (26 phiên). Cá còn nằm trên Kijun là xu hướng tăng còn giữ vững.")
-        st.write("- **🍱 Chiến thuật:** Kiểm tra 'Thức ăn' (% dư địa về MA20). Nếu cá bơi quá xa MA20, hãy đợi nó 'đói' và quay đầu kiểm định lại rồi mới thả lưới.")
+        
+        # --- ĐÂY LÀ PHẦN BỔ SUNG MỚI ---
+        st.write("- **🍱 Chiến thuật 'Thức ăn':**")
+        st.write("    * *Định nghĩa:* Là khoảng cách (dư địa) giữa giá hiện tại và đường trung bình MA20.")
+        st.write("    * *Lý giải:* Theo quy luật hồi mã, giá thường có xu hướng quay lại MA20 như con cá quay về nơi có thức ăn. Nếu % âm lớn, cá đang 'đói' (quá xa hỗ trợ) -> rủi ro điều chỉnh cao. Nếu % dương nhỏ, cá đang ở vùng 'no nê' (gần hỗ trợ) -> an toàn để thả lưới.")
+        # ------------------------------
 
+        st.write("- **🍱 Chiến thuật:** Kiểm tra 'Thức ăn' (% dư địa về MA20)...") # Dòng cũ của bạn
     # 3. Kim Chỉ Nam (Quotes)
     st.divider()
     QUOTES = [
