@@ -32,7 +32,7 @@ def compute_rsi(data, window=14):
 # --- 2. SIDEBAR: TRI KỶ & CẨM NANG CHIẾN THUẬT ---
 with st.sidebar:
     # Sử dụng Container để bọc ảnh và xử lý lỗi hiển thị
-    img_url = "https://raw.githubusercontent.com/daohuudat/be-loc-sieu-cap/main/tri-ky.jpg"
+    img_url = "https://github.com/DAOHUUDAT/Be-Loc-Sieu-Cap/blob/main/anh-tri-ky.jpg?raw=true"
     
     # Cách hiển thị ảnh an toàn hơn
     st.markdown(
