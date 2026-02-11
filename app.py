@@ -5,20 +5,23 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from datetime import datetime
 
-# --- 1. THIẾT LẬP GIAO DIỆN ---
-st.set_page_config(page_title="HÃY CHỌN CÁ ĐÚNG v6.3.6", layout="wide", initial_sidebar_state="expanded")
+# --- 1. CẤU HÌNH HỆ THỐNG GIAO DIỆN ---
+st.set_page_config(page_title="HÃY CHỌN CÁ ĐÚNG v6.3.5", layout="wide", initial_sidebar_state="expanded")
 
 st.markdown("""
     <style>
     [data-testid="stMetricValue"] { font-size: 1.6rem !important; font-weight: bold; color: #007bff; }
     section[data-testid="stSidebar"] { width: 310px !important; }
     .stTable { border-radius: 12px; overflow: hidden; }
+    .stTabs [data-baseweb="tab-list"] { gap: 10px; }
+    .stTabs [data-baseweb="tab"] { border-radius: 5px; padding: 10px; font-weight: bold; }
     </style>
     """, unsafe_allow_html=True)
 
 if 'history_log' not in st.session_state: 
     st.session_state['history_log'] = []
 
+# --- HÀM TÍNH TOÁN KỸ THUẬT (Các tấm lọc) ---
 def compute_rsi(data, window=14):
     delta = data.diff()
     gain = (delta.where(delta > 0, 0)).rolling(window=window).mean()
@@ -26,28 +29,31 @@ def compute_rsi(data, window=14):
     rs = gain / loss
     return 100 - (100 / (1 + rs))
 
-# --- 2. SIDEBAR: TRI KỶ & CẨM NANG ---
+# --- 2. SIDEBAR: TRI KỶ & CẨM NANG CHIẾN THUẬT ---
 with st.sidebar:
     try:
+        # Ảnh tri kỷ luôn xuất hiện ở góc trái trên cùng
         st.image("https://raw.githubusercontent.com/daohuudat/be-loc-sieu-cap/main/tri-ky.jpg", use_container_width=True)
     except:
-        st.info("🖼️ [Đang nạp ảnh tri kỷ...]")
+        st.info("🖼️ [Hệ thống đang nạp ảnh tri kỷ...]")
     
     st.header("🎮 ĐÀI CHỈ HUY")
     t_input = st.text_input("🔍 SOI MÃ CÁ", "VGC").upper()
     st.divider()
+    
     st.header("📓 CẨM NANG")
     with st.expander("📖 Giải mã thông số", expanded=True):
         st.markdown("""
-        - **🛡️ Niềm tin:** Sức khỏe nội tại.
-        - **📊 Bar Chart:** Xanh (Doanh thu), Vàng (Lợi nhuận).
-        - **🌡️ RSI:** Nhiệt độ dòng tiền.
-        - **🍱 Thức ăn:** Dư địa tăng trưởng.
+        - **🛡️ Niềm tin > 80%:** Cá Lớn thực thụ.
+        - **🌊 Sóng:** Mạnh khi Vol > 150% TB 20 phiên.
+        - **🌡️ RSI (Nhiệt độ):** >70 (Nóng), <30 (Lạnh).
+        - **🍱 Thức ăn:** Dư địa tăng trưởng dựa trên MA20/Định giá.
+        - **✂️ ATR:** Điểm cắt lỗ an toàn.
         """)
 
-st.title("🚀 Bể Lọc v6.3.6: SIÊU CẤP VIP PRO")
+st.title("🚀 Bể Lọc v6.3.5: FINAL CLOUD EDITION")
 
-# --- 3. TRẠM QUAN TRẮC VNI ---
+# --- 3. TRẠM QUAN TRẮC ĐẠI DƯƠNG (VN-INDEX) ---
 inf_factor = 1.0 
 try:
     vni = yf.download("^VNI", period="150d", progress=False)
@@ -57,29 +63,45 @@ try:
         vh26 = vni['High'].rolling(26).max(); vl26 = vni['Low'].rolling(26).min()
         vh9 = vni['High'].rolling(9).max(); vl9 = vni['Low'].rolling(9).min()
         vsa = (((vh9+vl9)/2 + (vh26+vl26)/2)/2).shift(26).iloc[-1]
+        
+        # Hệ số an toàn co giãn (Triết lý bản v5.5)
         inf_factor = 1.15 if v_c > vsa else 0.85
-        st.info(f"🌊 Đại Dương: {'🟢 THẢ LƯỚI' if v_c > vsa else '🔴 ĐÁNH KẺNG'}")
+        st.info(f"🌊 Đại Dương: {'🟢 THẢ LƯỚI (Sóng Thuận)' if v_c > vsa else '🔴 ĐÁNH KẺNG (Sóng Nghịch)'} | Co giãn: {inf_factor}x")
 except: pass
 
 # --- 4. HỆ THỐNG TABS ---
 tab_radar, tab_analysis, tab_history = st.tabs(["🎯 RADAR ELITE", "💎 CHI TIẾT SIÊU CÁ", "📓 SỔ VÀNG"])
 
 with tab_radar:
-    # (Giữ nguyên toàn bộ logic Radar v6.3.5)
-    st.subheader("🤖 Top 20 Đệ Tử Cá")
-    # ... [Đoạn mã Radar cũ] ...
+    st.subheader("🤖 Top 20 Đệ Tử Cá (Cập nhật trực tiếp)")
     elite_20 = ["DGC", "MWG", "FPT", "TCB", "SSI", "HPG", "GVR", "CTR", "DBC", "VNM", "STB", "MBB", "ACB", "KBC", "VGC", "PVS", "PVD", "ANV", "VHC", "REE"]
     radar_list = []
-    for tk in elite_20:
-        try:
-            d = yf.download(f"{tk}.VN", period="40d", progress=False)
-            if not d.empty:
-                if isinstance(d.columns, pd.MultiIndex): d.columns = d.columns.get_level_values(0)
-                p_c = d['Close'].iloc[-1]
-                v_now = d['Volume'].iloc[-1]; v_avg = d['Volume'].rolling(20).mean().iloc[-1]
-                ma20 = d['Close'].rolling(20).mean().iloc[-1]
-                radar_list.append({"Mã": tk, "Giá": f"{p_c:,.0f}", "Loại": "Cá Lớn 🐋" if p_c > ma20 and v_now > v_avg else "Cá Nhỏ 🐟", "Sóng": "🌊" if v_now > v_avg * 1.5 else "☕"})
-        except: continue
+    
+    with st.spinner('Đang tầm soát thực phẩm...'):
+        for tk in elite_20:
+            try:
+                d = yf.download(f"{tk}.VN", period="50d", progress=False)
+                if not d.empty:
+                    if isinstance(d.columns, pd.MultiIndex): d.columns = d.columns.get_level_values(0)
+                    p_c = d['Close'].iloc[-1]
+                    v_now = d['Volume'].iloc[-1]; v_avg = d['Volume'].rolling(20).mean().iloc[-1]
+                    ma20 = d['Close'].rolling(20).mean().iloc[-1]
+                    
+                    # Tính nhiệt độ RSI
+                    d['rsi_val'] = compute_rsi(d['Close'])
+                    curr_rsi = d['rsi_val'].iloc[-1]
+                    
+                    is_big = p_c > ma20 and v_now > v_avg
+                    temp = "🔥 Nóng" if curr_rsi > 70 else "❄️ Lạnh" if curr_rsi < 30 else "🌤️ Êm"
+                    
+                    radar_list.append({
+                        "Mã": tk, "Giá": f"{p_c:,.0f}",
+                        "Sóng": "🌊 Mạnh" if v_now > v_avg * 1.5 else "☕ Lặng",
+                        "Nhiệt độ": temp,
+                        "Loại": "Cá Lớn 🐋" if is_big else "Cá Nhỏ 🐟",
+                        "Thức ăn": f"{((ma20/p_c)-1)*100:+.1f}%" if not is_big else "✅ Đang no"
+                    })
+            except: continue
     st.table(pd.DataFrame(radar_list))
 
 with tab_analysis:
@@ -160,4 +182,4 @@ with tab_history:
         if st.button("🗑️ Làm sạch sổ"):
             st.session_state.history_log = []
             st.rerun()
-    else: st.info("Sổ vàng đang trống.")
+    else: st.info("Sổ vàng vẫn đang đợi những con cá lớn.")
