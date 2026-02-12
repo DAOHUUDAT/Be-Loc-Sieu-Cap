@@ -374,8 +374,10 @@ with tab_bctc:
     
     # Ý tưởng 1: Tải PDF để Gemini phân tích
     uploaded_file = st.file_uploader(f"📂 Tải lên BCTC PDF của {t_input}", type=['pdf'])
+    uploaded_file = st.file_uploader(f"📂 Tải lên BCTC PDF của {t_input}", type=['pdf'])
     if uploaded_file:
-        st.success(f"✅ Đã nhận file. Gemini 3 sẵn sàng mổ xẻ mã {t_input}!")
+        st.success(f"✅ Đã nhận file BCTC của {t_input}!")
+        st.info("💡 **Thiên tài Gemini đang sẵn sàng:** Bro hãy copy các số liệu quan trọng từ PDF (Doanh thu, LN 4 quý) dán vào ô dưới đây nếu dữ liệu tự động bị thiếu nhé!")
 
     st.divider()
 
@@ -440,7 +442,10 @@ with tab_bctc:
                         st.success("- Lợi thế cạnh tranh (Moat) rất lớn.")
 
                 except Exception as e:
-                    st.warning("⚠️ Dữ liệu BCTC không đủ 4 quý để tính TTM & Chấm sao.")
+                    st.warning("⚠️ Yahoo Finance thiếu dữ liệu 4 quý.")
+                    st.write("---")
+                    st.subheader("🛠️ Chế độ Mổ xẻ PDF thủ công")
+                    st.write("Bro hãy đọc file PDF vừa tải và tập trung vào mục **Kết quả kinh doanh** để tầm soát con cá này nhé!")
                 
             st.divider()
             st.info(f"💡 **Lời khuyên:** Một con **Siêu cá** lý tưởng là con cá có Lợi nhuận TTM tăng trưởng qua từng quý.")
