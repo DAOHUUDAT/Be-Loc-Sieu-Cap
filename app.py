@@ -5,6 +5,21 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from datetime import datetime
 
+def get_star_rating(g_margin, debt_ratio, ttm_profit):
+    stars = 0
+    # Tiêu chí 1: Biên lợi nhuận gộp tốt (>15%)
+    if g_margin > 15: stars += 2
+    elif g_margin > 10: stars += 1
+    
+    # Tiêu chí 2: Tài chính lành mạnh (Nợ/CSH < 1.0)
+    if debt_ratio < 1.0: stars += 2
+    elif debt_ratio < 1.5: stars += 1
+    
+    # Tiêu chí 3: Có lãi TTM
+    if ttm_profit > 0: stars += 1
+    
+    return "⭐" * stars if stars > 0 else "🥚 (Cần theo dõi thêm)"
+
 # --- 1. CẤU HÌNH HỆ THỐNG GIAO DIỆN ---
 st.set_page_config(page_title="HÃY CHỌN CÁ ĐÚNG v6.3.5", layout="wide", initial_sidebar_state="expanded")
 
@@ -392,6 +407,69 @@ with tab_bctc:
                     st.metric("Doanh thu TTM", f"{ttm_rev:,.1f} Tỷ")
                     st.metric("Lợi nhuận TTM", f"{ttm_profit:,.1f} Tỷ")
                     st.metric("Biên Lợi Nhuận Gộp", f"{g_margin:.1f}%")
+
+                st.write("**🏆 Điểm Tầm Soát TTM (4 Quý):**")
+                try:
+                    # (Giữ nguyên phần tính toán ttm_rev, ttm_profit, g_margin cũ của bro)
+                    ttm_rev = fin_q.loc['Total Revenue'].iloc[:4].sum() / 1e9
+                    ttm_profit = fin_q.loc['Net Income'].iloc[:4].sum() / 1e9
+                    g_margin = (fin_q.loc['Gross Profit'].iloc[0] / fin_q.loc['Total Revenue'].iloc[0]) * 100
+                    
+                    # Tính tỷ lệ nợ để chấm điểm
+                    debt = fin_q.loc['Total Liabilities Net Minority Interest'].iloc[0]
+                    equity = fin_q.loc['Total Equity Gross Minority Interest'].iloc[0]
+                    debt_ratio = debt / equity
+
+                    # HIỂN THỊ CHẤM SAO
+                    star_display = get_star_rating(g_margin, debt_ratio, ttm_profit)
+                    st.subheader(f"Xếp hạng: {star_display}")
+                    
+                    st.divider()
+
+                    # --- PHẦN CHẨN ĐOÁN CHI TIẾT ---
+                    st.write("**🩺 Chẩn đoán nội tại:**")
+                    if debt_ratio > 1.5:
+                        st.warning(f"⚠️ **Rủi ro nợ:** Tỷ lệ {debt_ratio:.2f} (Quá cao)")
+                    else:
+                        st.success(f"✅ **Tài chính sạch:** Tỷ lệ {debt_ratio:.2f} (An toàn)")
+
+                    if g_margin < 10:
+                        st.error(f"❗ **Biên gộp mỏng:** {g_margin:.1f}% (Cá dễ hụt hơi)")
+                    else:
+                        st.info(f"💎 **Biên gộp:** {g_margin:.1f}% (Đạt chuẩn)")
+
+                except Exception as e:
+                    st.write("Đang quét dữ liệu nội tạng...")
+
+		# --- CHẨN ĐOÁN SỨC KHỎE NỘI TẠI ---
+                st.write("**🩺 Chẩn đoán nội tại:**")
+                try:
+                    # 1. Kiểm tra nợ vay (Đòn bẩy)
+                    debt = fin_q.loc['Total Liabilities Net Minority Interest'].iloc[0]
+                    equity = fin_q.loc['Total Equity Gross Minority Interest'].iloc[0]
+                    d_e_ratio = debt / equity
+                    
+                    if d_e_ratio > 1.5:
+                        st.warning(f"⚠️ **Rủi ro nợ:** Tỷ lệ Nợ/Vốn CSH là {d_e_ratio:.2f}. Cá đang gánh nợ khá nặng, rủi ro lãi suất cao.")
+                    else:
+                        st.success(f"✅ **Tài chính sạch:** Tỷ lệ Nợ/CSH chỉ {d_e_ratio:.2f}. Cơ cấu vốn rất an toàn.")
+
+                    # 2. Kiểm tra hiệu quả quản lý chi phí
+                    opex = fin_q.loc['Operating Expense'].iloc[0]
+                    rev = fin_q.loc['Total Revenue'].iloc[0]
+                    opex_ratio = (opex / rev) * 100
+                    
+                    if opex_ratio > 20:
+                        st.info(f"🧐 **Lưu ý chi phí:** Chi phí vận hành chiếm {opex_ratio:.1f}% doanh thu. Cần kiểm tra kỹ bộ máy quản lý.")
+
+                    # 3. Điểm nhấn từ Gemini 3 Flash
+                    st.write("**📌 Điểm cần lưu ý:**")
+                    if g_margin < 10:
+                        st.error("- Biên lợi nhuận mỏng: Cá dễ bị tổn thương nếu giá nguyên liệu đầu vào tăng.")
+                    if ttm_profit > ttm_rev * 0.2:
+                        st.success("- Siêu lợi nhuận: Cá có khả năng sinh lời cực cao trên mỗi đồng doanh thu.")
+                except:
+                    st.write("Đang quét dữ liệu nội tạng...")	
 
                     if ttm_profit > 0 and g_margin > 15:
                         st.success("🌟 Cá béo tốt, nội tạng lành mạnh!")
