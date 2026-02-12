@@ -357,21 +357,21 @@ with tab_analysis:
 with tab_bctc:
     st.subheader(f"📊 Mổ xẻ nội tạng Cá: {t_input}")
     
+    # 1. Khu vực tải PDF phân tích sâu
     uploaded_file = st.file_uploader(f"📂 Tải lên BCTC PDF của {t_input}", type=['pdf'])
     if uploaded_file:
-        st.success(f"✅ Đã nhận file BCTC. Gemini 3 sẵn sàng mổ xẻ!")
+        st.success(f"✅ Đã nhận file. Gemini 3 sẵn sàng mổ xẻ mã {t_input}!")
 
     st.divider()
 
     try:
-        # Lấy fin_q đã được tải từ Ticker ở tab trước
         if not fin_q.empty:
-            # 1. Chuyển đổi đơn vị sang Tỷ VNĐ
+            # --- XỬ LÝ DỮ LIỆU ---
+            # Chuyển đơn vị sang Tỷ VNĐ và Việt hóa
             fin_q_vn = (fin_q.copy() / 1e9).round(2)
-            
-            # 2. Việt hóa toàn bộ danh mục
             fin_q_vn.index = [DICTIONARY_BCTC.get(x, x) for x in fin_q_vn.index]
             
+            # --- GIAO DIỆN HIỂN THỊ ---
             col_fa1, col_fa2 = st.columns([2, 1])
             
             with col_fa1:
@@ -379,21 +379,33 @@ with tab_bctc:
                 st.dataframe(fin_q_vn.iloc[:, :5], use_container_width=True)
                 
             with col_fa2:
-                st.write("**💡 Nhận định từ Gemini 3 Flash:**")
-                # Tính toán nhanh dựa trên dữ liệu thật
-                rev_now = fin_q.loc['Total Revenue'].iloc[0] / 1e9
-                st.success(f"""
-                - **Sức khỏe:** {trust}% (Tin cậy).
-                - **Doanh thu quý gần nhất:** {rev_now:,.2f} Tỷ VNĐ.
-                - **Trạng thái:** Số liệu đã được quy đổi sang Tỷ VNĐ và Tiếng Việt.
-                """)
+                st.write("**🏆 Điểm Tầm Soát TTM (4 Quý gần nhất):**")
+                try:
+                    # Tính tổng TTM (4 cột đầu tiên)
+                    ttm_rev = fin_q.loc['Total Revenue'].iloc[:4].sum() / 1e9
+                    ttm_profit = fin_q.loc['Net Income'].iloc[:4].sum() / 1e9
+                    
+                    # Tính Biên lợi nhuận gộp quý gần nhất
+                    g_margin = (fin_q.loc['Gross Profit'].iloc[0] / fin_q.loc['Total Revenue'].iloc[0]) * 100
+
+                    # Hiển thị các chỉ số vàng theo phong cách Trường Money
+                    st.metric("Doanh thu TTM", f"{ttm_rev:,.1f} Tỷ")
+                    st.metric("Lợi nhuận TTM", f"{ttm_profit:,.1f} Tỷ")
+                    st.metric("Biên Lợi Nhuận Gộp", f"{g_margin:.1f}%")
+
+                    if ttm_profit > 0 and g_margin > 15:
+                        st.success("🌟 Cá béo tốt, nội tạng lành mạnh!")
+                    elif ttm_profit < 0:
+                        st.error("⚠️ Cá đang sụt cân (Lỗ TTM)")
+                except Exception as e:
+                    st.warning("Đang tính toán các chỉ số TTM...")
                 
             st.divider()
-            st.info(f"💡 **Ngư dân lưu ý:** Nếu thấy dòng 'Tổng nợ' hoặc 'Chi phí lãi vay' tăng đột biến, hãy thận trọng khi thả lưới mã {t_input}!")
+            st.info(f"💡 **Lời khuyên:** Một con **Siêu cá** lý tưởng là con cá có Lợi nhuận TTM tăng trưởng qua từng quý.")
         else:
-            st.warning("Yahoo Finance chưa phản hồi dữ liệu. Hãy thử tải PDF lên để mổ xẻ thủ công.")
+            st.warning("Yahoo Finance chưa phản hồi dữ liệu. Hãy tải PDF để mổ xẻ thủ công.")
     except Exception as e:
-        st.error(f"Vui lòng soi mã {t_input} ở Tab 'Chi tiết siêu cá' để nạp dữ liệu!")
+        st.error(f"Lỗi: Hãy soi mã {t_input} ở Tab 'Chi tiết siêu cá' để nạp dữ liệu!")
 
 with tab_history:
     st.subheader("📓 DANH SÁCH CÁ ĐÃ TẦM SOÁT")
