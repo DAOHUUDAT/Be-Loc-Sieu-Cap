@@ -372,7 +372,7 @@ with tab_analysis:
 with tab_bctc:
     st.subheader(f"📊 Mổ xẻ nội tạng Cá: {t_input}")
     
-    # 1. Khu vực tải PDF phân tích sâu
+    # Ý tưởng 1: Tải PDF để Gemini phân tích
     uploaded_file = st.file_uploader(f"📂 Tải lên BCTC PDF của {t_input}", type=['pdf'])
     if uploaded_file:
         st.success(f"✅ Đã nhận file. Gemini 3 sẵn sàng mổ xẻ mã {t_input}!")
@@ -382,11 +382,10 @@ with tab_bctc:
     try:
         if not fin_q.empty:
             # --- XỬ LÝ DỮ LIỆU ---
-            # Chuyển đơn vị sang Tỷ VNĐ và Việt hóa
+            # Đổi sang Tỷ VNĐ và Việt hóa danh mục
             fin_q_vn = (fin_q.copy() / 1e9).round(2)
             fin_q_vn.index = [DICTIONARY_BCTC.get(x, x) for x in fin_q_vn.index]
             
-            # --- GIAO DIỆN HIỂN THỊ ---
             col_fa1, col_fa2 = st.columns([2, 1])
             
             with col_fa1:
@@ -394,8 +393,9 @@ with tab_bctc:
                 st.dataframe(fin_q_vn.iloc[:, :5], use_container_width=True)
                 
             with col_fa2:
-                # 1. Tính toán các chỉ số nền tảng trước khi hiển thị
+                # Ý tưởng 2: Tính toán TTM & Chấm sao phong cách Trường Money
                 try:
+                    # Lấy số liệu gốc để tính toán
                     ttm_rev = fin_q.loc['Total Revenue'].iloc[:4].sum() / 1e9
                     ttm_profit = fin_q.loc['Net Income'].iloc[:4].sum() / 1e9
                     g_margin = (fin_q.loc['Gross Profit'].iloc[0] / fin_q.loc['Total Revenue'].iloc[0]) * 100
@@ -404,70 +404,43 @@ with tab_bctc:
                     equity = fin_q.loc['Total Equity Gross Minority Interest'].iloc[0]
                     debt_ratio = debt / equity
 
-                    # 2. Hiển thị Điểm Tầm Soát TTM
+                    # Hiển thị Metric
                     st.write("**🏆 Điểm Tầm Soát TTM (4 Quý):**")
                     st.metric("Doanh thu TTM", f"{ttm_rev:,.1f} Tỷ")
                     st.metric("Lợi nhuận TTM", f"{ttm_profit:,.1f} Tỷ")
                     
-                    # 3. Chấm sao và Hiển thị xếp hạng
+                    # Chấm sao
                     star_display = get_star_rating(g_margin, debt_ratio, ttm_profit)
                     st.subheader(f"Xếp hạng: {star_display}")
                     
+                    # Ý tưởng 3: Hiệu ứng Bóng bay cho SIÊU CÁ 5 SAO
+                    if "⭐⭐⭐⭐⭐" in star_display:
+                        st.balloons()
+                        st.success("🚀 PHÁT HIỆN SIÊU CÁ 5 SAO!")
+
                     st.divider()
 
-                    # 4. Chẩn đoán sức khỏe chi tiết
+                    # Ý tưởng 4: Chẩn đoán sức khỏe nội tại chi tiết
                     st.write("**🩺 Chẩn đoán nội tại:**")
                     if debt_ratio > 1.5:
-                        st.warning(f"⚠️ **Rủi nợ:** {debt_ratio:.2f} (Hơi cao)")
+                        st.warning(f"⚠️ **Nợ/CSH:** {debt_ratio:.2f} (Hơi cao)")
                     else:
-                        st.success(f"✅ **Tài chính:** {debt_ratio:.2f} (Sạch)")
+                        st.success(f"✅ **Nợ/CSH:** {debt_ratio:.2f} (An toàn)")
 
                     if g_margin < 10:
                         st.error(f"❗ **Biên gộp:** {g_margin:.1f}% (Mỏng)")
                     else:
-                        st.info(f"💎 **Biên gộp:** {g_margin:.1f}% (Đạt chuẩn)")
+                        st.info(f"💎 **Biên gộp:** {g_margin:.1f}% (Tốt)")
+                    
+                    # Ý tưởng 5: Nhận định thông minh từ Gemini
+                    st.write("**📌 Lưu ý từ Gemini:**")
+                    if ttm_profit > ttm_rev * 0.15:
+                        st.success("- Khả năng sinh lời (Net Margin) cực tốt.")
+                    if g_margin > 25:
+                        st.success("- Lợi thế cạnh tranh (Moat) rất lớn.")
 
                 except Exception as e:
-                    # Khối except bắt buộc để sửa lỗi Syntax của bro
-                    st.warning("⚠️ Đang thiếu dữ liệu để tính TTM & Chấm sao cho mã này.")
-                    st.write("Chi tiết: Dữ liệu BCTC từ nguồn chưa đủ 4 quý.")
-
-		# --- CHẨN ĐOÁN SỨC KHỎE NỘI TẠI ---
-                st.write("**🩺 Chẩn đoán nội tại:**")
-                try:
-                    # 1. Kiểm tra nợ vay (Đòn bẩy)
-                    debt = fin_q.loc['Total Liabilities Net Minority Interest'].iloc[0]
-                    equity = fin_q.loc['Total Equity Gross Minority Interest'].iloc[0]
-                    d_e_ratio = debt / equity
-                    
-                    if d_e_ratio > 1.5:
-                        st.warning(f"⚠️ **Rủi ro nợ:** Tỷ lệ Nợ/Vốn CSH là {d_e_ratio:.2f}. Cá đang gánh nợ khá nặng, rủi ro lãi suất cao.")
-                    else:
-                        st.success(f"✅ **Tài chính sạch:** Tỷ lệ Nợ/CSH chỉ {d_e_ratio:.2f}. Cơ cấu vốn rất an toàn.")
-
-                    # 2. Kiểm tra hiệu quả quản lý chi phí
-                    opex = fin_q.loc['Operating Expense'].iloc[0]
-                    rev = fin_q.loc['Total Revenue'].iloc[0]
-                    opex_ratio = (opex / rev) * 100
-                    
-                    if opex_ratio > 20:
-                        st.info(f"🧐 **Lưu ý chi phí:** Chi phí vận hành chiếm {opex_ratio:.1f}% doanh thu. Cần kiểm tra kỹ bộ máy quản lý.")
-
-                    # 3. Điểm nhấn từ Gemini 3 Flash
-                    st.write("**📌 Điểm cần lưu ý:**")
-                    if g_margin < 10:
-                        st.error("- Biên lợi nhuận mỏng: Cá dễ bị tổn thương nếu giá nguyên liệu đầu vào tăng.")
-                    if ttm_profit > ttm_rev * 0.2:
-                        st.success("- Siêu lợi nhuận: Cá có khả năng sinh lời cực cao trên mỗi đồng doanh thu.")
-                except:
-                    st.write("Đang quét dữ liệu nội tạng...")	
-
-                    if ttm_profit > 0 and g_margin > 15:
-                        st.success("🌟 Cá béo tốt, nội tạng lành mạnh!")
-                    elif ttm_profit < 0:
-                        st.error("⚠️ Cá đang sụt cân (Lỗ TTM)")
-                except Exception as e:
-                    st.warning("Đang tính toán các chỉ số TTM...")
+                    st.warning("⚠️ Dữ liệu BCTC không đủ 4 quý để tính TTM & Chấm sao.")
                 
             st.divider()
             st.info(f"💡 **Lời khuyên:** Một con **Siêu cá** lý tưởng là con cá có Lợi nhuận TTM tăng trưởng qua từng quý.")
