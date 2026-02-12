@@ -372,19 +372,18 @@ with tab_analysis:
 with tab_bctc:
     st.subheader(f"📊 Mổ xẻ nội tạng Cá: {t_input}")
     
-    # Ý tưởng 1: Tải PDF để Gemini phân tích
-    uploaded_file = st.file_uploader(f"📂 Tải lên BCTC PDF của {t_input}", type=['pdf'])
-    uploaded_file = st.file_uploader(f"📂 Tải lên BCTC PDF của {t_input}", type=['pdf'])
+    # CHỈ GIỮ 1 DÒNG UPLOADER DUY NHẤT (Đã sửa lỗi Duplicate ID)
+    uploaded_file = st.file_uploader(f"📂 Tải lên BCTC PDF của {t_input}", type=['pdf'], key="bctc_pdf_pro")
+    
     if uploaded_file:
         st.success(f"✅ Đã nhận file BCTC của {t_input}!")
-        st.info("💡 **Thiên tài Gemini đang sẵn sàng:** Bro hãy copy các số liệu quan trọng từ PDF (Doanh thu, LN 4 quý) dán vào ô dưới đây nếu dữ liệu tự động bị thiếu nhé!")
+        st.info("💡 **Gợi ý:** Nếu dữ liệu tự động bên dưới bị thiếu, bro hãy dùng số liệu trong PDF để tự chấm điểm nhé.")
 
     st.divider()
 
     try:
         if not fin_q.empty:
-            # --- XỬ LÝ DỮ LIỆU ---
-            # Đổi sang Tỷ VNĐ và Việt hóa danh mục
+            # --- XỬ LÝ DỮ LIỆU SANG TỶ VNĐ ---
             fin_q_vn = (fin_q.copy() / 1e9).round(2)
             fin_q_vn.index = [DICTIONARY_BCTC.get(x, x) for x in fin_q_vn.index]
             
@@ -395,9 +394,8 @@ with tab_bctc:
                 st.dataframe(fin_q_vn.iloc[:, :5], use_container_width=True)
                 
             with col_fa2:
-                # Ý tưởng 2: Tính toán TTM & Chấm sao phong cách Trường Money
+                # KHỐI TÍNH TOÁN & CHẤM SAO TẬP TRUNG
                 try:
-                    # Lấy số liệu gốc để tính toán
                     ttm_rev = fin_q.loc['Total Revenue'].iloc[:4].sum() / 1e9
                     ttm_profit = fin_q.loc['Net Income'].iloc[:4].sum() / 1e9
                     g_margin = (fin_q.loc['Gross Profit'].iloc[0] / fin_q.loc['Total Revenue'].iloc[0]) * 100
@@ -406,26 +404,22 @@ with tab_bctc:
                     equity = fin_q.loc['Total Equity Gross Minority Interest'].iloc[0]
                     debt_ratio = debt / equity
 
-                    # Hiển thị Metric
                     st.write("**🏆 Điểm Tầm Soát TTM (4 Quý):**")
                     st.metric("Doanh thu TTM", f"{ttm_rev:,.1f} Tỷ")
                     st.metric("Lợi nhuận TTM", f"{ttm_profit:,.1f} Tỷ")
                     
-                    # Chấm sao
                     star_display = get_star_rating(g_margin, debt_ratio, ttm_profit)
                     st.subheader(f"Xếp hạng: {star_display}")
                     
-                    # Ý tưởng 3: Hiệu ứng Bóng bay cho SIÊU CÁ 5 SAO
                     if "⭐⭐⭐⭐⭐" in star_display:
-                        st.balloons()
+                        st.balloons() # Nổ bóng bay cho siêu cá!
                         st.success("🚀 PHÁT HIỆN SIÊU CÁ 5 SAO!")
 
                     st.divider()
 
-                    # Ý tưởng 4: Chẩn đoán sức khỏe nội tại chi tiết
                     st.write("**🩺 Chẩn đoán nội tại:**")
                     if debt_ratio > 1.5:
-                        st.warning(f"⚠️ **Nợ/CSH:** {debt_ratio:.2f} (Hơi cao)")
+                        st.warning(f"⚠️ **Nợ/CSH:** {debt_ratio:.2f} (Cao)")
                     else:
                         st.success(f"✅ **Nợ/CSH:** {debt_ratio:.2f} (An toàn)")
 
@@ -433,24 +427,18 @@ with tab_bctc:
                         st.error(f"❗ **Biên gộp:** {g_margin:.1f}% (Mỏng)")
                     else:
                         st.info(f"💎 **Biên gộp:** {g_margin:.1f}% (Tốt)")
-                    
-                    # Ý tưởng 5: Nhận định thông minh từ Gemini
-                    st.write("**📌 Lưu ý từ Gemini:**")
-                    if ttm_profit > ttm_rev * 0.15:
-                        st.success("- Khả năng sinh lời (Net Margin) cực tốt.")
-                    if g_margin > 25:
-                        st.success("- Lợi thế cạnh tranh (Moat) rất lớn.")
 
-                except Exception as e:
-                    st.warning("⚠️ Yahoo Finance thiếu dữ liệu 4 quý.")
+                except Exception as calc_e:
+                    # Lời giải cho việc "Tại sao tải PDF vẫn báo thiếu dữ liệu"
+                    st.warning("⚠️ Yahoo Finance chưa đủ 4 quý gần nhất.")
                     st.write("---")
-                    st.subheader("🛠️ Chế độ Mổ xẻ PDF thủ công")
-                    st.write("Bro hãy đọc file PDF vừa tải và tập trung vào mục **Kết quả kinh doanh** để tầm soát con cá này nhé!")
+                    st.subheader("🛠️ Chế độ Mổ xẻ PDF")
+                    st.write("Số liệu Yahoo đang bị kẹt, bro hãy xem PDF để tự tầm soát nhé!")
                 
             st.divider()
-            st.info(f"💡 **Lời khuyên:** Một con **Siêu cá** lý tưởng là con cá có Lợi nhuận TTM tăng trưởng qua từng quý.")
+            st.info(f"💡 **Lời khuyên:** Cá lý tưởng là cá có Lợi nhuận TTM tăng trưởng đều.")
         else:
-            st.warning("Yahoo Finance chưa phản hồi dữ liệu. Hãy tải PDF để mổ xẻ thủ công.")
+            st.warning("Yahoo Finance chưa phản hồi dữ liệu.")
     except Exception as e:
         st.error(f"Lỗi: Hãy soi mã {t_input} ở Tab 'Chi tiết siêu cá' để nạp dữ liệu!")
 
