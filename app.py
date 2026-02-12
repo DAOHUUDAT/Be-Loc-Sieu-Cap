@@ -394,52 +394,43 @@ with tab_bctc:
                 st.dataframe(fin_q_vn.iloc[:, :5], use_container_width=True)
                 
             with col_fa2:
-                st.write("**🏆 Điểm Tầm Soát TTM (4 Quý gần nhất):**")
+                # 1. Tính toán các chỉ số nền tảng trước khi hiển thị
                 try:
-                    # Tính tổng TTM (4 cột đầu tiên)
-                    ttm_rev = fin_q.loc['Total Revenue'].iloc[:4].sum() / 1e9
-                    ttm_profit = fin_q.loc['Net Income'].iloc[:4].sum() / 1e9
-                    
-                    # Tính Biên lợi nhuận gộp quý gần nhất
-                    g_margin = (fin_q.loc['Gross Profit'].iloc[0] / fin_q.loc['Total Revenue'].iloc[0]) * 100
-
-                    # Hiển thị các chỉ số vàng theo phong cách Trường Money
-                    st.metric("Doanh thu TTM", f"{ttm_rev:,.1f} Tỷ")
-                    st.metric("Lợi nhuận TTM", f"{ttm_profit:,.1f} Tỷ")
-                    st.metric("Biên Lợi Nhuận Gộp", f"{g_margin:.1f}%")
-
-                st.write("**🏆 Điểm Tầm Soát TTM (4 Quý):**")
-                try:
-                    # (Giữ nguyên phần tính toán ttm_rev, ttm_profit, g_margin cũ của bro)
                     ttm_rev = fin_q.loc['Total Revenue'].iloc[:4].sum() / 1e9
                     ttm_profit = fin_q.loc['Net Income'].iloc[:4].sum() / 1e9
                     g_margin = (fin_q.loc['Gross Profit'].iloc[0] / fin_q.loc['Total Revenue'].iloc[0]) * 100
                     
-                    # Tính tỷ lệ nợ để chấm điểm
                     debt = fin_q.loc['Total Liabilities Net Minority Interest'].iloc[0]
                     equity = fin_q.loc['Total Equity Gross Minority Interest'].iloc[0]
                     debt_ratio = debt / equity
 
-                    # HIỂN THỊ CHẤM SAO
+                    # 2. Hiển thị Điểm Tầm Soát TTM
+                    st.write("**🏆 Điểm Tầm Soát TTM (4 Quý):**")
+                    st.metric("Doanh thu TTM", f"{ttm_rev:,.1f} Tỷ")
+                    st.metric("Lợi nhuận TTM", f"{ttm_profit:,.1f} Tỷ")
+                    
+                    # 3. Chấm sao và Hiển thị xếp hạng
                     star_display = get_star_rating(g_margin, debt_ratio, ttm_profit)
                     st.subheader(f"Xếp hạng: {star_display}")
                     
                     st.divider()
 
-                    # --- PHẦN CHẨN ĐOÁN CHI TIẾT ---
+                    # 4. Chẩn đoán sức khỏe chi tiết
                     st.write("**🩺 Chẩn đoán nội tại:**")
                     if debt_ratio > 1.5:
-                        st.warning(f"⚠️ **Rủi ro nợ:** Tỷ lệ {debt_ratio:.2f} (Quá cao)")
+                        st.warning(f"⚠️ **Rủi nợ:** {debt_ratio:.2f} (Hơi cao)")
                     else:
-                        st.success(f"✅ **Tài chính sạch:** Tỷ lệ {debt_ratio:.2f} (An toàn)")
+                        st.success(f"✅ **Tài chính:** {debt_ratio:.2f} (Sạch)")
 
                     if g_margin < 10:
-                        st.error(f"❗ **Biên gộp mỏng:** {g_margin:.1f}% (Cá dễ hụt hơi)")
+                        st.error(f"❗ **Biên gộp:** {g_margin:.1f}% (Mỏng)")
                     else:
                         st.info(f"💎 **Biên gộp:** {g_margin:.1f}% (Đạt chuẩn)")
 
                 except Exception as e:
-                    st.write("Đang quét dữ liệu nội tạng...")
+                    # Khối except bắt buộc để sửa lỗi Syntax của bro
+                    st.warning("⚠️ Đang thiếu dữ liệu để tính TTM & Chấm sao cho mã này.")
+                    st.write("Chi tiết: Dữ liệu BCTC từ nguồn chưa đủ 4 quý.")
 
 		# --- CHẨN ĐOÁN SỨC KHỎE NỘI TẠI ---
                 st.write("**🩺 Chẩn đoán nội tại:**")
