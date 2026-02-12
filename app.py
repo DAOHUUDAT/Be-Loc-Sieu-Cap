@@ -22,25 +22,70 @@ if 'history_log' not in st.session_state:
     st.session_state['history_log'] = []
 
 # --- HÀM TÍNH TOÁN KỸ THUẬT (Các tấm lọc) ---
-# --- TỪ ĐIỂN VIỆT HÓA BCTC TOÀN DIỆN ---
+# --- TỪ ĐIỂN VIỆT HÓA BCTC SIÊU CẤP ---
 DICTIONARY_BCTC = {
+    # Doanh thu & Lợi nhuận gộp
     'Total Revenue': 'Tổng Doanh thu',
-    'Net Income': 'Lợi nhuận ròng',
-    'Gross Profit': 'Lợi nhuận gộp',
-    'Operating Income': 'Lợi nhuận từ HĐKD',
+    'Operating Revenue': 'Doanh thu hoạt động',
     'Cost Of Revenue': 'Giá vốn hàng bán',
-    'Total Assets': 'Tổng tài sản',
-    'Total Liabilities Net Minority Interest': 'Tổng nợ phải trả',
-    'Total Equity Gross Minority Interest': 'Vốn chủ sở hữu',
-    'Net Income From Continuing Operation Net Extraordinaries': 'LN ròng từ HĐKD liên tục',
-    'Tax Provision': 'Dự phòng thuế',
-    'Pretax Income': 'Lợi nhuận trước thuế',
-    'Other Non Operating Income': 'Thu nhập phi hoạt động khác',
-    'Net Income Common Stockholders': 'LN ròng dành cho CĐ phổ thông',
-    'Diluted NI Availto Com Stockholders': 'LN ròng pha loãng',
-    'Minority Interests': 'Lợi ích cổ đông thiểu số',
+    'Gross Profit': 'Lợi nhuận gộp',
+    
+    # Chi phí hoạt động
     'Operating Expense': 'Chi phí hoạt động',
-    'Interest Expense': 'Chi phí lãi vay'
+    'Selling General And Administration': 'Chi phí bán hàng & QLDN',
+    'Selling And Marketing Expense': 'Chi phí bán hàng & Marketing',
+    'General And Administrative Expense': 'Chi phí quản lý doanh nghiệp',
+    'Rent Expense Supplemental': 'Chi phí thuê bổ sung',
+    'Rent And Landing Fees': 'Chi phí thuê & phí bãi',
+    'Depreciation And Amortization In Income Statement': 'Khấu hao trong BCKQKD',
+    'Depreciation Income Statement': 'Khấu hao (BCKQKD)',
+    
+    # Lợi nhuận hoạt động & Khác
+    'Operating Income': 'Lợi nhuận từ HĐKD',
+    'Total Operating Income As Reported': 'Tổng LN hoạt động (Báo cáo)',
+    'Total Expenses': 'Tổng chi phí',
+    'Other Non Operating Income Expenses': 'Thu nhập/Chi phí phi hoạt động khác',
+    'Special Income Charges': 'Chi phí thu nhập đặc biệt',
+    'Other Special Charges': 'Chi phí đặc biệt khác',
+    
+    # Tài chính & Lãi vay
+    'Net Interest Income': 'Thu nhập lãi thuần',
+    'Interest Income': 'Thu nhập lãi vay',
+    'Interest Expense': 'Chi phí lãi vay',
+    'Interest Income Non Operating': 'Thu nhập lãi phi hoạt động',
+    'Interest Expense Non Operating': 'Chi phí lãi phi hoạt động',
+    'Net Non Operating Interest Income Expense': 'Thu nhập lãi phi hoạt động thuần',
+    'Total Other Finance Cost': 'Tổng chi phí tài chính khác',
+    
+    # Lợi nhuận trước & sau thuế
+    'Pretax Income': 'Lợi nhuận trước thuế',
+    'Tax Provision': 'Dự phòng thuế',
+    'Tax Rate For Calcs': 'Thuế suất tính toán',
+    'Net Income Continuous Operations': 'LN từ HĐ liên tục',
+    'Net Income Including Noncontrolling Interests': 'LN ròng gồm lợi ích CĐTS',
+    'Minority Interests': 'Lợi ích cổ đông thiểu số',
+    'Net Income': 'Lợi nhuận ròng',
+    'Net Income Common Stockholders': 'LN ròng dành cho CĐ phổ thông',
+    'Net Income From Continuing Operation Net Minority Interest': 'LN ròng từ HĐKD liên tục (sau CĐTS)',
+    'Net Income From Continuing And Discontinued Operation': 'LN từ HĐ liên tục & gián đoạn',
+    'Normalized Income': 'Lợi nhuận điều chỉnh (Normalized)',
+    
+    # EPS & Cổ phiếu
+    'Basic EPS': 'EPS cơ bản',
+    'Diluted EPS': 'EPS pha loãng',
+    'Basic Average Shares': 'Số CP lưu hành bình quân',
+    'Diluted Average Shares': 'Số CP pha loãng bình quân',
+    'Otherunder Preferred Stock Dividend': 'Cổ tức CP ưu đãi khác',
+    
+    # EBITDA & Chỉ số tính toán
+    'EBITDA': 'EBITDA',
+    'EBIT': 'EBIT',
+    'Normalized EBITDA': 'EBITDA điều chỉnh',
+    'Reconciled Depreciation': 'Khấu hao đã đối soát',
+    'Reconciled Cost Of Revenue': 'Giá vốn đã đối soát',
+    'Total Unusual Items': 'Tổng các khoản bất thường',
+    'Total Unusual Items Excluding Goodwill': 'Tổng khoản bất thường (ko gồm Lợi thế TM)',
+    'Tax Effect Of Unusual Items': 'Ảnh hưởng thuế của khoản bất thường'
 }
 def compute_rsi(data, window=14):
     delta = data.diff()
@@ -312,47 +357,43 @@ with tab_analysis:
 with tab_bctc:
     st.subheader(f"📊 Mổ xẻ nội tạng Cá: {t_input}")
     
-    # 1. Khu vực tải PDF
     uploaded_file = st.file_uploader(f"📂 Tải lên BCTC PDF của {t_input}", type=['pdf'])
     if uploaded_file:
-        st.success(f"✅ Đã nhận file. Gemini 3 đang sẵn sàng phân tích sâu mã {t_input}!")
+        st.success(f"✅ Đã nhận file BCTC. Gemini 3 sẵn sàng mổ xẻ!")
 
     st.divider()
 
     try:
-        # Kiểm tra dữ liệu tài chính từ tab_analysis
+        # Lấy fin_q đã được tải từ Ticker ở tab trước
         if not fin_q.empty:
-            # XỬ LÝ DỮ LIỆU: Chia cho 1 tỷ và Việt hóa
+            # 1. Chuyển đổi đơn vị sang Tỷ VNĐ
             fin_q_vn = (fin_q.copy() / 1e9).round(2)
+            
+            # 2. Việt hóa toàn bộ danh mục
             fin_q_vn.index = [DICTIONARY_BCTC.get(x, x) for x in fin_q_vn.index]
             
-            c_fa1, c_fa2 = st.columns([2, 1])
+            col_fa1, col_fa2 = st.columns([2, 1])
             
-            with c_fa1:
-                st.write("**📑 Bảng cân đối & Kết quả KD (Tỷ VNĐ):**")
-                # Hiển thị bảng số liệu sạch
+            with col_fa1:
+                st.write("**📑 Bảng số liệu chi tiết (Đơn vị: Tỷ VNĐ):**")
                 st.dataframe(fin_q_vn.iloc[:, :5], use_container_width=True)
                 
-            with c_fa2:
-                st.write("**💡 Nhận định nhanh:**")
-                # Tính toán tăng trưởng lợi nhuận nhanh (nếu có đủ dữ liệu)
-                try:
-                    p_growth = (fin_q.loc['Net Income'].iloc[0] / fin_q.loc['Net Income'].iloc[4]) - 1
-                    p_status = "🚀 Tăng trưởng" if p_growth > 0 else "⚠️ Sụt giảm"
-                except: p_status = "Đang theo dõi"
-
+            with col_fa2:
+                st.write("**💡 Nhận định từ Gemini 3 Flash:**")
+                # Tính toán nhanh dựa trên dữ liệu thật
+                rev_now = fin_q.loc['Total Revenue'].iloc[0] / 1e9
                 st.success(f"""
-                - **Sức khỏe:** {trust}% điểm tin cậy.
-                - **Lợi nhuận ròng:** {p_status}.
-                - **Đơn vị tính:** Tỷ VNĐ (Đã rút gọn).
+                - **Sức khỏe:** {trust}% (Tin cậy).
+                - **Doanh thu quý gần nhất:** {rev_now:,.2f} Tỷ VNĐ.
+                - **Trạng thái:** Số liệu đã được quy đổi sang Tỷ VNĐ và Tiếng Việt.
                 """)
-            
+                
             st.divider()
-            st.info("💡 **Mẹo:** Nếu bảng vẫn còn dòng tiếng Anh, hãy báo cho tôi để tôi bổ sung vào từ điển!")
+            st.info(f"💡 **Ngư dân lưu ý:** Nếu thấy dòng 'Tổng nợ' hoặc 'Chi phí lãi vay' tăng đột biến, hãy thận trọng khi thả lưới mã {t_input}!")
         else:
-            st.warning("Yahoo Finance chưa cập nhật số liệu cho mã này. Bro hãy tải PDF lên nhé!")
+            st.warning("Yahoo Finance chưa phản hồi dữ liệu. Hãy thử tải PDF lên để mổ xẻ thủ công.")
     except Exception as e:
-        st.error(f"Hãy soi mã {t_input} ở Tab 'Chi tiết siêu cá' trước để nạp dữ liệu!")
+        st.error(f"Vui lòng soi mã {t_input} ở Tab 'Chi tiết siêu cá' để nạp dữ liệu!")
 
 with tab_history:
     st.subheader("📓 DANH SÁCH CÁ ĐÃ TẦM SOÁT")
