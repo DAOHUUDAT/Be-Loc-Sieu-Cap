@@ -310,58 +310,49 @@ with tab_analysis:
         st.error(f"Đang tầm soát mã cá {t_input}...")
 
 with tab_bctc:
-    st.subheader(f"🔍 Phân tích nội tạng Cá: {t_input}")
+    st.subheader(f"📊 Mổ xẻ nội tạng Cá: {t_input}")
     
-    # 1. Tải file PDF
+    # 1. Khu vực tải PDF
     uploaded_file = st.file_uploader(f"📂 Tải lên BCTC PDF của {t_input}", type=['pdf'])
     if uploaded_file:
-        st.success(f"✅ Đã nhận file BCTC của {t_input}. Đang sẵn sàng mổ xẻ!")
+        st.success(f"✅ Đã nhận file. Gemini 3 đang sẵn sàng phân tích sâu mã {t_input}!")
 
     st.divider()
 
     try:
+        # Kiểm tra dữ liệu tài chính từ tab_analysis
         if not fin_q.empty:
-            # --- XỬ LÝ DỮ LIỆU: Đổi sang Tỷ VNĐ và Việt hóa ---
-            # 1. Chuyển đơn vị sang Tỷ VNĐ và làm tròn 2 chữ số thập phân
+            # XỬ LÝ DỮ LIỆU: Chia cho 1 tỷ và Việt hóa
             fin_q_vn = (fin_q.copy() / 1e9).round(2)
-            
-            # 2. Áp dụng từ điển Việt hóa cho các dòng
             fin_q_vn.index = [DICTIONARY_BCTC.get(x, x) for x in fin_q_vn.index]
             
-            col_fa1, col_fa2 = st.columns([2, 1])
+            c_fa1, c_fa2 = st.columns([2, 1])
             
-            with col_fa1:
-                st.write("**📑 Bảng dữ liệu tài chính (Đơn vị: Tỷ VNĐ):**")
-                # Hiển thị bảng số liệu sạch sẽ
+            with c_fa1:
+                st.write("**📑 Bảng cân đối & Kết quả KD (Tỷ VNĐ):**")
+                # Hiển thị bảng số liệu sạch
                 st.dataframe(fin_q_vn.iloc[:, :5], use_container_width=True)
                 
-            with col_fa2:
+            with c_fa2:
                 st.write("**💡 Nhận định nhanh:**")
-                # Tính toán tăng trưởng lợi nhuận nhanh
+                # Tính toán tăng trưởng lợi nhuận nhanh (nếu có đủ dữ liệu)
                 try:
-                    profit_growth = (fin_q.loc['Net Income'].iloc[0] / fin_q.loc['Net Income'].iloc[4]) - 1
-                    status_profit = "🚀 Tăng trưởng mạnh" if profit_growth > 0 else "⚠️ Đang sụt giảm"
-                except: status_profit = "Chưa xác định"
+                    p_growth = (fin_q.loc['Net Income'].iloc[0] / fin_q.loc['Net Income'].iloc[4]) - 1
+                    p_status = "🚀 Tăng trưởng" if p_growth > 0 else "⚠️ Sụt giảm"
+                except: p_status = "Đang theo dõi"
 
                 st.success(f"""
-                - **Sức khỏe:** {trust}% (Tổng hợp).
-                - **Lợi nhuận:** {status_profit}.
-                - **Lưu ý:** Số liệu trong bảng đã được chia cho 1.000.000.000 để ra đơn vị Tỷ VNĐ.
+                - **Sức khỏe:** {trust}% điểm tin cậy.
+                - **Lợi nhuận ròng:** {p_status}.
+                - **Đơn vị tính:** Tỷ VNĐ (Đã rút gọn).
                 """)
-                
+            
             st.divider()
-            st.info(f"💡 **Mẹo:** Bro hãy nhìn vào dòng 'Lợi nhuận ròng', nếu con số dương và tăng đều qua các cột (quý) thì con cá này rất béo!")
+            st.info("💡 **Mẹo:** Nếu bảng vẫn còn dòng tiếng Anh, hãy báo cho tôi để tôi bổ sung vào từ điển!")
         else:
-            st.warning("Dữ liệu tự động không sẵn có. Bro hãy tải file PDF để mình phân tích thủ công nhé.")
-    except NameError:
-        st.error("Lỗi: Vui lòng nhập mã cá ở Sidebar và kiểm tra Tab 'Chi tiết siêu cá' trước.")
-                
-            st.divider()
-            st.info(f"💡 **Mẹo:** Sau khi tải PDF, bro có thể hỏi mình: '{t_input} có bao nhiêu nợ vay ngắn hạn?'")
-        else:
-            st.warning("Dữ liệu tự động không sẵn có. Bro hãy dùng tính năng tải PDF phía trên.")
-    except NameError:
-        st.error("Vui lòng soi mã cá ở Tab 'Chi tiết siêu cá' trước.")
+            st.warning("Yahoo Finance chưa cập nhật số liệu cho mã này. Bro hãy tải PDF lên nhé!")
+    except Exception as e:
+        st.error(f"Hãy soi mã {t_input} ở Tab 'Chi tiết siêu cá' trước để nạp dữ liệu!")
 
 with tab_history:
     st.subheader("📓 DANH SÁCH CÁ ĐÃ TẦM SOÁT")
