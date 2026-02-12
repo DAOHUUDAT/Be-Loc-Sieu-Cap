@@ -22,7 +22,7 @@ if 'history_log' not in st.session_state:
     st.session_state['history_log'] = []
 
 # --- HÀM TÍNH TOÁN KỸ THUẬT (Các tấm lọc) ---
-# --- TỪ ĐIỂN VIỆT HÓA BCTC ---
+# --- TỪ ĐIỂN VIỆT HÓA BCTC TOÀN DIỆN ---
 DICTIONARY_BCTC = {
     'Total Revenue': 'Tổng Doanh thu',
     'Net Income': 'Lợi nhuận ròng',
@@ -32,7 +32,15 @@ DICTIONARY_BCTC = {
     'Total Assets': 'Tổng tài sản',
     'Total Liabilities Net Minority Interest': 'Tổng nợ phải trả',
     'Total Equity Gross Minority Interest': 'Vốn chủ sở hữu',
-    'Net Income From Continuing Operation Net Extraordinaries': 'LN ròng từ HĐKD liên tục'
+    'Net Income From Continuing Operation Net Extraordinaries': 'LN ròng từ HĐKD liên tục',
+    'Tax Provision': 'Dự phòng thuế',
+    'Pretax Income': 'Lợi nhuận trước thuế',
+    'Other Non Operating Income': 'Thu nhập phi hoạt động khác',
+    'Net Income Common Stockholders': 'LN ròng dành cho CĐ phổ thông',
+    'Diluted NI Availto Com Stockholders': 'LN ròng pha loãng',
+    'Minority Interests': 'Lợi ích cổ đông thiểu số',
+    'Operating Expense': 'Chi phí hoạt động',
+    'Interest Expense': 'Chi phí lãi vay'
 }
 def compute_rsi(data, window=14):
     delta = data.diff()
@@ -304,34 +312,49 @@ with tab_analysis:
 with tab_bctc:
     st.subheader(f"🔍 Phân tích nội tạng Cá: {t_input}")
     
-    # --- VỊ TRÍ TẢI FILE BCTC PDF ---
-    uploaded_file = st.file_uploader(f"📂 Tải lên BCTC PDF của {t_input} để Gemini 3 phân tích sâu", type=['pdf'])
-    
-    if uploaded_file is not None:
-        st.success(f"✅ Đã nhận file: {uploaded_file.name}. Bro hãy đặt câu hỏi để mình mổ xẻ file này nhé!")
+    # 1. Tải file PDF
+    uploaded_file = st.file_uploader(f"📂 Tải lên BCTC PDF của {t_input}", type=['pdf'])
+    if uploaded_file:
+        st.success(f"✅ Đã nhận file BCTC của {t_input}. Đang sẵn sàng mổ xẻ!")
 
     st.divider()
 
     try:
         if not fin_q.empty:
-            # VIỆT HÓA TÊN CÁC DÒNG TRONG BẢNG
-            fin_q_vn = fin_q.copy()
+            # --- XỬ LÝ DỮ LIỆU: Đổi sang Tỷ VNĐ và Việt hóa ---
+            # 1. Chuyển đơn vị sang Tỷ VNĐ và làm tròn 2 chữ số thập phân
+            fin_q_vn = (fin_q.copy() / 1e9).round(2)
+            
+            # 2. Áp dụng từ điển Việt hóa cho các dòng
             fin_q_vn.index = [DICTIONARY_BCTC.get(x, x) for x in fin_q_vn.index]
             
             col_fa1, col_fa2 = st.columns([2, 1])
             
             with col_fa1:
-                st.write("**📑 Bảng dữ liệu tài chính (Tiếng Việt):**")
-                # Hiển thị bảng đã Việt hóa
+                st.write("**📑 Bảng dữ liệu tài chính (Đơn vị: Tỷ VNĐ):**")
+                # Hiển thị bảng số liệu sạch sẽ
                 st.dataframe(fin_q_vn.iloc[:, :5], use_container_width=True)
                 
             with col_fa2:
-                st.write("**💡 Nhận định từ Gemini 3 Flash:**")
+                st.write("**💡 Nhận định nhanh:**")
+                # Tính toán tăng trưởng lợi nhuận nhanh
+                try:
+                    profit_growth = (fin_q.loc['Net Income'].iloc[0] / fin_q.loc['Net Income'].iloc[4]) - 1
+                    status_profit = "🚀 Tăng trưởng mạnh" if profit_growth > 0 else "⚠️ Đang sụt giảm"
+                except: status_profit = "Chưa xác định"
+
                 st.success(f"""
                 - **Sức khỏe:** {trust}% (Tổng hợp).
-                - **Doanh thu:** {'🚀 Tăng trưởng' if rev_growth > 0 else '🐢 Sụt giảm'}.
-                - **Ghi chú:** Các số liệu đã được chuyển sang Tiếng Việt để bro dễ soi.
+                - **Lợi nhuận:** {status_profit}.
+                - **Lưu ý:** Số liệu trong bảng đã được chia cho 1.000.000.000 để ra đơn vị Tỷ VNĐ.
                 """)
+                
+            st.divider()
+            st.info(f"💡 **Mẹo:** Bro hãy nhìn vào dòng 'Lợi nhuận ròng', nếu con số dương và tăng đều qua các cột (quý) thì con cá này rất béo!")
+        else:
+            st.warning("Dữ liệu tự động không sẵn có. Bro hãy tải file PDF để mình phân tích thủ công nhé.")
+    except NameError:
+        st.error("Lỗi: Vui lòng nhập mã cá ở Sidebar và kiểm tra Tab 'Chi tiết siêu cá' trước.")
                 
             st.divider()
             st.info(f"💡 **Mẹo:** Sau khi tải PDF, bro có thể hỏi mình: '{t_input} có bao nhiêu nợ vay ngắn hạn?'")
