@@ -22,6 +22,18 @@ if 'history_log' not in st.session_state:
     st.session_state['history_log'] = []
 
 # --- HÀM TÍNH TOÁN KỸ THUẬT (Các tấm lọc) ---
+# --- TỪ ĐIỂN VIỆT HÓA BCTC ---
+DICTIONARY_BCTC = {
+    'Total Revenue': 'Tổng Doanh thu',
+    'Net Income': 'Lợi nhuận ròng',
+    'Gross Profit': 'Lợi nhuận gộp',
+    'Operating Income': 'Lợi nhuận từ HĐKD',
+    'Cost Of Revenue': 'Giá vốn hàng bán',
+    'Total Assets': 'Tổng tài sản',
+    'Total Liabilities Net Minority Interest': 'Tổng nợ phải trả',
+    'Total Equity Gross Minority Interest': 'Vốn chủ sở hữu',
+    'Net Income From Continuing Operation Net Extraordinaries': 'LN ròng từ HĐKD liên tục'
+}
 def compute_rsi(data, window=14):
     delta = data.diff()
     gain = (delta.where(delta > 0, 0)).rolling(window=window).mean()
@@ -292,31 +304,42 @@ with tab_analysis:
 with tab_bctc:
     st.subheader(f"🔍 Phân tích nội tạng Cá: {t_input}")
     
-    # Kiểm tra xem dữ liệu tài chính (fin_q) đã được tải ở tab trước đó chưa
+    # --- VỊ TRÍ TẢI FILE BCTC PDF ---
+    uploaded_file = st.file_uploader(f"📂 Tải lên BCTC PDF của {t_input} để Gemini 3 phân tích sâu", type=['pdf'])
+    
+    if uploaded_file is not None:
+        st.success(f"✅ Đã nhận file: {uploaded_file.name}. Bro hãy đặt câu hỏi để mình mổ xẻ file này nhé!")
+
+    st.divider()
+
     try:
         if not fin_q.empty:
+            # VIỆT HÓA TÊN CÁC DÒNG TRONG BẢNG
+            fin_q_vn = fin_q.copy()
+            fin_q_vn.index = [DICTIONARY_BCTC.get(x, x) for x in fin_q_vn.index]
+            
             col_fa1, col_fa2 = st.columns([2, 1])
             
             with col_fa1:
-                st.write("**📑 Bảng dữ liệu tài chính 5 quý:**")
-                # Hiển thị bảng số liệu để bro tự soi các dòng chi tiết
-                st.dataframe(fin_q.iloc[:, :5], use_container_width=True)
+                st.write("**📑 Bảng dữ liệu tài chính (Tiếng Việt):**")
+                # Hiển thị bảng đã Việt hóa
+                st.dataframe(fin_q_vn.iloc[:, :5], use_container_width=True)
                 
             with col_fa2:
                 st.write("**💡 Nhận định từ Gemini 3 Flash:**")
-                # Tính toán nhanh một số chỉ số để đưa ra lời khuyên
                 st.success(f"""
-                - **Sức khỏe:** {trust}% (Kết hợp Nội tại & Kỹ thuật).
-                - **Doanh thu:** {'🚀 Đang bơi nhanh' if rev_growth > 0 else '🐢 Đang bơi chậm'}.
-                - **Lời khuyên:** Kiểm tra kỹ mục 'Lợi nhuận ròng' trong bảng bên trái để xem cá có thực sự béo tốt không.
+                - **Sức khỏe:** {trust}% (Tổng hợp).
+                - **Doanh thu:** {'🚀 Tăng trưởng' if rev_growth > 0 else '🐢 Sụt giảm'}.
+                - **Ghi chú:** Các số liệu đã được chuyển sang Tiếng Việt để bro dễ soi.
                 """)
                 
             st.divider()
-            st.info(f"💡 **Mẹo cho bro:** Nếu muốn soi sâu hơn mã {t_input}, hãy gửi file BCTC PDF cho tôi, Gemini 3 sẽ giúp bro tìm các khoản 'nợ xấu' hoặc 'hàng tồn kho' bất thường.")
+            st.info(f"💡 **Mẹo:** Sau khi tải PDF, bro có thể hỏi mình: '{t_input} có bao nhiêu nợ vay ngắn hạn?'")
         else:
-            st.warning("Dữ liệu tài chính tự động đang bị chặn. Bro hãy thử soi mã khác hoặc đợi lát nữa nhé.")
+            st.warning("Dữ liệu tự động không sẵn có. Bro hãy dùng tính năng tải PDF phía trên.")
     except NameError:
-        st.error("Lỗi hệ thống: Vui lòng soi mã cá ở Tab 'Chi tiết siêu cá' trước khi vào đây mổ xẻ.")
+        st.error("Vui lòng soi mã cá ở Tab 'Chi tiết siêu cá' trước.")
+
 with tab_history:
     st.subheader("📓 DANH SÁCH CÁ ĐÃ TẦM SOÁT")
     if st.session_state.history_log:
