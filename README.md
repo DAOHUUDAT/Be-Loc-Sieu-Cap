@@ -1,24 +1,47 @@
-🏛️ 1. Hệ Thống Mắt Thần (Radar Elite 20)
-Quy mô: Quản lý cùng lúc 20 đệ tử sừng sỏ nhất sàn chứng khoán (DGC, FPT, MWG, VGC...).
+🚀 Bể Lọc Siêu Cá v6.3.8: Hãy Chọn Cá Đúng
+Bể Lọc Siêu Cá không chỉ là một công cụ phân tích kỹ thuật, mà là một "Trạm quan trắc đại dương" thông minh, kết hợp giữa sức mạnh của AI và hệ tư tưởng đầu tư thực chiến. Hệ thống giúp bạn loại bỏ "rác" thị trường để tập trung vào những Siêu Cá có khả năng mang lại lợi nhuận đột biến.
 
-Phân bậc: Không còn "cá mè một lứa". Hệ thống tự động chấm điểm để vinh danh ai là 🥇 ĐẠI CA, ai là 🥈 CẬN VỆ, giúp anh tập trung nguồn lực vào những chú cá mạnh nhất.
+🌟 Tính Năng Độc Bản
+1. 🤖 Radar Elite 20
+Tự động tầm soát danh mục 20 cổ phiếu trụ cột của thị trường Việt Nam. Hệ thống phân loại "hệ sinh thái" dựa trên dòng tiền và sức mạnh tương đối (RS):
 
-🛡️ 2. Thang Đo Niềm Tin (The Trust Meter)
-Trí tuệ nhân tạo: Đây là "bộ não" tổng hợp. Nó không chỉ nhìn giá, mà soi cả Sức khỏe tài chính + Tăng trưởng + Xu hướng kỹ thuật.
+🚀 SIÊU CÁ: Điểm nổ Volume + Giá vượt MA20 + Khỏe hơn VN-Index.
 
-Con số biết nói: Điểm số từ 0-100%. Nếu thanh Progress hiện màu xanh (>80%), đó là lúc anh có thể tự tin "ra khơi" với vị thế lớn nhất.
+🐋 Cá Lớn: Xu hướng tăng bền vững trên MA20 và MA50.
 
-🏠 3. Ma Trận Định Giá Co Giãn (Dynamic Valuation)
-Đối chiếu thực tế: Luôn đặt Giá hiện tại nằm ngay sát 3 kịch bản: 🐢 Thận trọng - 🏠 Cơ sở - 🚀 Phi thường.
+🐡 Cá Đang Lớn: Giai đoạn chuyển mình, chớm vượt ngưỡng cản.
 
-Cảm biến bão tố: Hệ thống tự động nhận diện "thời tiết" VN-Index. Nếu biển động, nó tự động chiết khấu giá mục tiêu xuống để bảo vệ anh khỏi những cú "mua hớ".
+2. 💎 Mổ Xẻ Chi tiết (Deep Analysis)
+Phân tích kỹ thuật chuyên sâu với tuyệt kỹ Ichimoku Kinko Hyo:
 
-📝 4. Hội Đồng Quản Trị (BCTC Review)
-Soi nội tạng: Hệ thống tự bóc tách Biên lãi gộp, Tỷ lệ nợ và ROE.
+Mây Kumo: Xác định vùng trời tự do của cá.
 
-Lời phê trực diện: Thay vì đọc những bảng số khô khan, bạn nhận được những lời phê "thẳng như ruột ngựa": “Cá có lợi thế cạnh tranh mạnh” hoặc “🚨 Rủi ro nợ vay cao”.
+Tenkan & Kijun: Hệ thống cảnh báo tốc độ và sự bền vững của xu hướng.
 
-📊 5. Di Sản Kỹ Thuật (Trong Ấm Ngoài Êm)
-Mây Ichimoku & ATR: Những cơ sở xác định vùng mua an toàn và điểm cắt lỗ kỷ luật.
+Chỉ số Niềm tin (%): Thuật toán độc quyền kết hợp giữa tăng trưởng doanh thu và vị thế kỹ thuật.
 
-Chu kỳ 5 quý: Nhìn thấu quá khứ tăng trưởng để dự báo tương lai.
+3. 📊 Tab BCTC: Tầm Soát Nội Tạng cá
+Không chỉ nhìn biểu đồ, chúng ta còn soi "nội tạng" của cá:
+
+Việt hóa 100%: Toàn bộ thuật ngữ tài chính từ Yahoo Finance được chuyển sang tiếng Việt.
+
+Đơn vị Tỷ VNĐ: Số liệu sạch, gọn, dễ đọc ngay tức thì.
+
+AI Analysis: Tích hợp bộ đọc PDF để Gemini 3 "đọc hộ" thuyết minh báo cáo tài chính cho bạn.
+
+4. 📓 Sổ Vàng (Watchlist)
+Lưu trữ những mục tiêu tâm đắc nhất kèm theo ghi chú kỷ luật và cảnh báo vùng "Thức ăn" (MA20) để tối ưu hóa điểm vào lệnh.
+
+🛠️ Công Nghệ Sử Dụng
+Ngôn ngữ: Python
+
+Giao diện: Streamlit (Pro UI Customization)
+
+Dữ liệu: Yahoo Finance (Real-time fetching)
+
+Đồ họa: Plotly Interactive Charts
+
+AI Core: Gemini 3 Flash (AI Collaborator)
+
+⚠️ Miễn Trừ Trách Nhiệm
+Mọi phân tích từ Bể Lọc chỉ mang tính chất tham khảo. Đầu tư tài chính luôn tiềm ẩn rủi ro. Hãy là một ngư dân có trách nhiệm và luôn quản trị rủi ro cá nhân!
