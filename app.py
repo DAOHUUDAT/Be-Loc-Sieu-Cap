@@ -5,6 +5,20 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from datetime import datetime
 
+@st.cache_data # Dùng cache để app chỉ tải một lần, cực nhanh
+def load_vietstock_data():
+    urls = [
+        "https://github.com/DAOHUUDAT/Be-Loc-Sieu-Cap/raw/refs/heads/main/data/HOSE.xlsx",
+        "https://github.com/DAOHUUDAT/Be-Loc-Sieu-Cap/raw/refs/heads/main/data/HNX.xlsx",
+        "https://github.com/DAOHUUDAT/Be-Loc-Sieu-Cap/raw/refs/heads/main/data/UPCOM.xlsx"
+    ]
+    # Gộp 3 sàn thành 1 đại dương dữ liệu duy nhất
+    combined_df = pd.concat([pd.read_csv(url) for url in urls])
+    return combined_df
+
+# Kích hoạt dữ liệu nền
+vietstock_db = load_vietstock_data()
+
 def get_star_rating(g_margin, debt_ratio, ttm_profit):
     stars = 0
     # Tiêu chí 1: Biên lợi nhuận gộp tốt (>15%)
