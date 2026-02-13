@@ -32,16 +32,6 @@ AI Analysis: Tích hợp bộ đọc PDF để Gemini 3 "đọc hộ" thuyết m
 4. 📓 Sổ Vàng (Watchlist)
 Lưu trữ những mục tiêu tâm đắc nhất kèm theo ghi chú kỷ luật và cảnh báo vùng "Thức ăn" (MA20) để tối ưu hóa điểm vào lệnh.
 
-🛠️ Công Nghệ Sử Dụng
-Ngôn ngữ: Python
-
-Giao diện: Streamlit (Pro UI Customization)
-
-Dữ liệu: Yahoo Finance (Real-time fetching)
-
-Đồ họa: Plotly Interactive Charts
-
-AI Core: Gemini 3 Flash (AI Collaborator)
 
 ⚠️ Miễn Trừ Trách Nhiệm
 Mọi phân tích từ Bể Lọc chỉ mang tính chất tham khảo. Đầu tư tài chính luôn tiềm ẩn rủi ro. Hãy là một ngư dân có trách nhiệm và luôn quản trị rủi ro cá nhân!
