@@ -5,12 +5,6 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from datetime import datetime
 
-# Khởi tạo trạng thái bộ nhớ nếu chưa có
-if 'selected_fish' not in st.session_state:
-    st.session_state.selected_fish = ""
-if 'current_tab' not in st.session_state:
-    st.session_state.current_tab = "Radar Elite"
-
 def get_star_rating(g_margin, debt_ratio, ttm_profit):
     stars = 0
     # Tiêu chí 1: Biên lợi nhuận gộp tốt (>15%)
@@ -27,7 +21,7 @@ def get_star_rating(g_margin, debt_ratio, ttm_profit):
     return "⭐" * stars if stars > 0 else "🥚 (Cần theo dõi thêm)"
 
 # --- 1. CẤU HÌNH HỆ THỐNG GIAO DIỆN ---
-st.set_page_config(page_title="HÃY CHỌN CÁ ĐÚNG v6.3.9", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="HÃY CHỌN CÁ ĐÚNG v6.3.5", layout="wide", initial_sidebar_state="expanded")
 
 st.markdown("""
     <style>
@@ -130,9 +124,7 @@ with st.sidebar:
     )
     
     st.header("🎮 ĐÀI CHỈ HUY")
-    # Ưu tiên lấy mã cá từ bộ nhớ (khi bấm từ Radar)
-val_from_radar = st.session_state.get('selected_fish', "")
-t_input = st.text_input("Nhập mã cá để soi (VD: HPG, VCB, HSG...):", value=val_from_radar).upper()
+    t_input = st.text_input("🔍 SOI MÃ CÁ", "VGC").upper()
     st.divider()
 
     # 2. Cẩm Nang Toàn Diện (Đã sửa lỗi thụt lề)
@@ -150,7 +142,7 @@ t_input = st.text_input("Nhập mã cá để soi (VD: HPG, VCB, HSG...):", valu
         st.write("- **🌊 Sóng:** Vol > 150% trung bình 20 phiên - dấu hiệu 'cá mập' đang đẩy giá.")
         st.write("- **🌡️ Nhiệt độ (RSI):** Nóng (>70) dễ điều chỉnh, Lạnh (<30) quá bán.")
         
-    st.divider() 
+        st.divider() 
         
         # PHẦN CHI TIẾT (Lý giải chuyên sâu cho Tab Phân Tích)
         st.markdown(f"### 💎 Mổ xẻ chi tiết: {t_input}")
@@ -212,29 +204,11 @@ try:
 except: pass
 
 # --- 4. HỆ THỐNG TABS ---
-# Định nghĩa danh sách tab
-tabs = ["Radar Elite", "Chi tiết siêu cá", "BCTC"]
+# Thay dòng st.tabs cũ bằng dòng này để lưu trạng thái vào biến selected_tab
+tab_radar, tab_analysis, tab_bctc, tab_history = st.tabs(["🎯 RADAR ELITE", "💎 CHI TIẾT SIÊU CÁ", "📊 MỔ XẺ BCTC", "📓 SỔ VÀNG"])
 
-# Tìm index của tab đang chọn để đồng bộ giao diện
-try:
-    active_tab_index = tabs.index(st.session_state.current_tab)
-except ValueError:
-    active_tab_index = 0
-
-# Tạo tabs với cơ chế chọn tự động
-# Thêm Tab Phân tích vào danh sách để hết lỗi NameError
-tab_radar, tab_detail, tab_bctc, tab_analysis, tab_history = st.tabs(["Radar Elite", "Chi tiết siêu cá", "BCTC", "Phân tích chuyên sâu", "Sổ vàng Ngư dân"])
 with tab_radar:
-    st.subheader("📡 RADAR DÒ SIÊU CÁ (SÀN HOSE)")
-    # Giả sử bro đang lọc danh sách cá, hãy thêm nút này:
-    c1, c2 = st.columns([4, 1])
-    with c1:
-        st.info("Bro chọn mã bên dưới để xem chi tiết nhé 👇")
-    # Ví dụ minh họa cách tạo nút nhảy
-    if st.button("🚀 Soi nội tạng Siêu Cá ngay"):
-        st.session_state.selected_fish = "DIG" # Hoặc mã cá bro đang lọc
-        st.session_state.current_tab = "Chi tiết siêu cá"
-        st.rerun()
+    st.subheader("🤖 Top 20 SIÊU CÁ")
     
     # Hiển thị trạng thái Đại dương để làm tham chiếu
     status_color = "green" if inf_factor > 1 else "red"
@@ -441,7 +415,7 @@ with tab_bctc:
                         st.balloons() # Nổ bóng bay cho siêu cá!
                         st.success("🚀 PHÁT HIỆN SIÊU CÁ 5 SAO!")
 
-    st.divider()
+                    st.divider()
 
                     st.write("**🩺 Chẩn đoán nội tại:**")
                     if debt_ratio > 1.5:
@@ -461,7 +435,7 @@ with tab_bctc:
                     st.subheader("🛠️ Chế độ Mổ xẻ PDF")
                     st.write("Số liệu Yahoo đang bị kẹt, bro hãy xem PDF để tự tầm soát nhé!")
                 
-    st.divider()
+            st.divider()
             st.info(f"💡 **Lời khuyên:** Cá lý tưởng là cá có Lợi nhuận TTM tăng trưởng đều.")
         else:
             st.warning("Yahoo Finance chưa phản hồi dữ liệu.")
