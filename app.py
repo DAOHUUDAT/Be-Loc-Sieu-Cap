@@ -130,7 +130,9 @@ with st.sidebar:
     )
     
     st.header("🎮 ĐÀI CHỈ HUY")
-    t_input = st.text_input("🔍 SOI MÃ CÁ", "VGC").upper()
+    # Ưu tiên lấy mã cá từ bộ nhớ (khi bấm từ Radar)
+val_from_radar = st.session_state.get('selected_fish', "")
+t_input = st.text_input("Nhập mã cá để soi (VD: HPG, VCB, HSG...):", value=val_from_radar).upper()
     st.divider()
 
     # 2. Cẩm Nang Toàn Diện (Đã sửa lỗi thụt lề)
@@ -220,9 +222,19 @@ except ValueError:
     active_tab_index = 0
 
 # Tạo tabs với cơ chế chọn tự động
-tab_radar, tab_detail, tab_bctc = st.tabs(tabs)
+# Thêm Tab Phân tích vào danh sách để hết lỗi NameError
+tab_radar, tab_detail, tab_bctc, tab_analysis, tab_history = st.tabs(["Radar Elite", "Chi tiết siêu cá", "BCTC", "Phân tích chuyên sâu", "Sổ vàng Ngư dân"])
 with tab_radar:
-    st.subheader("🤖 Top 20 SIÊU CÁ")
+    st.subheader("📡 RADAR DÒ SIÊU CÁ (SÀN HOSE)")
+    # Giả sử bro đang lọc danh sách cá, hãy thêm nút này:
+    c1, c2 = st.columns([4, 1])
+    with c1:
+        st.info("Bro chọn mã bên dưới để xem chi tiết nhé 👇")
+    # Ví dụ minh họa cách tạo nút nhảy
+    if st.button("🚀 Soi nội tạng Siêu Cá ngay"):
+        st.session_state.selected_fish = "DIG" # Hoặc mã cá bro đang lọc
+        st.session_state.current_tab = "Chi tiết siêu cá"
+        st.rerun()
     
     # Hiển thị trạng thái Đại dương để làm tham chiếu
     status_color = "green" if inf_factor > 1 else "red"
