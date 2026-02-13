@@ -386,75 +386,83 @@ with tab_analysis:
 with tab_bctc:
     st.subheader(f"📊 Mổ xẻ nội tạng Cá: {t_input}")
     
-    # CHỈ GIỮ 1 DÒNG UPLOADER DUY NHẤT (Đã sửa lỗi Duplicate ID)
-    uploaded_file = st.file_uploader(f"📂 Tải lên BCTC PDF của {t_input}", type=['pdf'], key="bctc_pdf_pro")
-    
+    # 1. Khu vực tải PDF (Giữ nguyên cho Gemini mổ xẻ sau)
+    uploaded_file = st.file_uploader(f"📂 Tải lên BCTC PDF của {t_input}", type=['pdf'])
     if uploaded_file:
-        st.success(f"✅ Đã nhận file BCTC của {t_input}!")
-        st.info("💡 **Gợi ý:** Nếu dữ liệu tự động bên dưới bị thiếu, bro hãy dùng số liệu trong PDF để tự chấm điểm nhé.")
+        st.success(f"✅ Đã nhận file. Gemini sẵn sàng mổ xẻ mã {t_input}!")
 
     st.divider()
 
-    try:
-        if not fin_q.empty:
-            # --- XỬ LÝ DỮ LIỆU SANG TỶ VNĐ ---
-            fin_q_vn = (fin_q.copy() / 1e9).round(2)
-            fin_q_vn.index = [DICTIONARY_BCTC.get(x, x) for x in fin_q_vn.index]
+    if t_input and not vietstock_db.empty:
+        # TRUY VẤN DỮ LIỆU TỪ FILE EXCEL VIETSTOCK
+        fish_data = vietstock_db[vietstock_db['Mã CK'] == t_input]
+        
+        if not fish_data.empty:
+            row = fish_data.iloc[0]
             
+            # --- TỰ ĐỘNG TÌM CỘT DỰA TRÊN TỪ KHÓA (Vì tiêu đề Vietstock rất dài) ---
+            # Ví dụ: "Tổng doanh thu bán hàng...", "Lợi nhuận sau thuế...", "Hàng tồn kho..."
+            def find_col(keyword):
+                cols = [c for c in vietstock_db.columns if keyword.lower() in str(c).lower()]
+                return cols[0] if cols else None
+
+            col_rev = find_col("Doanh thu thuần") or find_col("Doanh thu bán hàng")
+            col_profit = find_col("Lợi nhuận sau thuế")
+            col_inventory = find_col("Hàng tồn kho")
+            col_cash = find_col("Tiền và các khoản tương đương tiền")
+
+            # --- GIAO DIỆN HIỂN THỊ 2 CỘT ---
             col_fa1, col_fa2 = st.columns([2, 1])
             
             with col_fa1:
-                st.write("**📑 Bảng số liệu chi tiết (Đơn vị: Tỷ VNĐ):**")
-                st.dataframe(fin_q_vn.iloc[:, :5], use_container_width=True)
+                st.write("**📑 Thông số tài chính cốt lõi (Từ file Excel):**")
+                # Hiển thị bảng tóm tắt các chỉ số quan trọng tìm được
+                summary_data = {
+                    "Chỉ số": ["Doanh thu", "Lợi nhuận sau thuế", "Hàng tồn kho", "Tiền mặt"],
+                    "Giá trị (VND)": [
+                        f"{row[col_rev]:,.0f}" if col_rev else "N/A",
+                        f"{row[col_profit]:,.0f}" if col_profit else "N/A",
+                        f"{row[col_inventory]:,.0f}" if col_inventory else "N/A",
+                        f"{row[col_cash]:,.0f}" if col_cash else "N/A"
+                    ]
+                }
+                st.table(pd.DataFrame(summary_data))
                 
             with col_fa2:
-                # KHỐI TÍNH TOÁN & CHẤM SAO TẬP TRUNG
-                try:
-                    ttm_rev = fin_q.loc['Total Revenue'].iloc[:4].sum() / 1e9
-                    ttm_profit = fin_q.loc['Net Income'].iloc[:4].sum() / 1e9
-                    g_margin = (fin_q.loc['Gross Profit'].iloc[0] / fin_q.loc['Total Revenue'].iloc[0]) * 100
+                st.write("**🏆 Đánh giá nhanh:**")
+                if col_profit and col_rev:
+                    val_profit = row[col_profit]
+                    val_rev = row[col_rev]
                     
-                    debt = fin_q.loc['Total Liabilities Net Minority Interest'].iloc[0]
-                    equity = fin_q.loc['Total Equity Gross Minority Interest'].iloc[0]
-                    debt_ratio = debt / equity
-
-                    st.write("**🏆 Điểm Tầm Soát TTM (4 Quý):**")
-                    st.metric("Doanh thu TTM", f"{ttm_rev:,.1f} Tỷ")
-                    st.metric("Lợi nhuận TTM", f"{ttm_profit:,.1f} Tỷ")
+                    st.metric("Lợi nhuận", f"{val_profit/1e9:,.2f} Tỷ")
                     
-                    star_display = get_star_rating(g_margin, debt_ratio, ttm_profit)
-                    st.subheader(f"Xếp hạng: {star_display}")
-                    
-                    if "⭐⭐⭐⭐⭐" in star_display:
-                        st.balloons() # Nổ bóng bay cho siêu cá!
-                        st.success("🚀 PHÁT HIỆN SIÊU CÁ 5 SAO!")
+                    # Tính Biên lợi nhuận ròng tạm tính
+                    net_margin = (val_profit / val_rev) * 100 if val_rev > 0 else 0
+                    st.metric("Biên Lợi Nhuận Ròng", f"{net_margin:.1f}%")
 
-                    st.divider()
-
-                    st.write("**🩺 Chẩn đoán nội tại:**")
-                    if debt_ratio > 1.5:
-                        st.warning(f"⚠️ **Nợ/CSH:** {debt_ratio:.2f} (Cao)")
+                    if val_profit > 0:
+                        st.success("🌟 Cá có lãi, nội tạng tốt!")
                     else:
-                        st.success(f"✅ **Nợ/CSH:** {debt_ratio:.2f} (An toàn)")
+                        st.error("⚠️ Cá đang sụt cân (Lỗ)")
 
-                    if g_margin < 10:
-                        st.error(f"❗ **Biên gộp:** {g_margin:.1f}% (Mỏng)")
-                    else:
-                        st.info(f"💎 **Biên gộp:** {g_margin:.1f}% (Tốt)")
-
-                except Exception as calc_e:
-                    # Lời giải cho việc "Tại sao tải PDF vẫn báo thiếu dữ liệu"
-                    st.warning("⚠️ Yahoo Finance chưa đủ 4 quý gần nhất.")
-                    st.write("---")
-                    st.subheader("🛠️ Chế độ Mổ xẻ PDF")
-                    st.write("Số liệu Yahoo đang bị kẹt, bro hãy xem PDF để tự tầm soát nhé!")
-                
             st.divider()
-            st.info(f"💡 **Lời khuyên:** Cá lý tưởng là cá có Lợi nhuận TTM tăng trưởng đều.")
+            
+            # --- TƯ DUY A7 & TRƯỜNG MONEY ---
+            st.subheader("🧠 Phân tích chuyên sâu (Tầm nhìn A7)")
+            c1, c2 = st.columns(2)
+            with c1:
+                if col_inventory:
+                    st.info(f"📦 **Của để dành (Tồn kho):** {row[col_inventory]/1e9:,.1f} Tỷ")
+            with c2:
+                if col_cash:
+                    st.info(f"💰 **Sức mạnh tiền mặt:** {row[col_cash]/1e9:,.1f} Tỷ")
+
+            st.info(f"💡 **Lời khuyên:** Kiểm tra xem 'Hàng tồn kho' có phải là các dự án sắp mở bán không. Đó là ngòi nổ cho SIÊU CÁ!")
+
         else:
-            st.warning("Yahoo Finance chưa phản hồi dữ liệu.")
-    except Exception as e:
-        st.error(f"Lỗi: Hãy soi mã {t_input} ở Tab 'Chi tiết siêu cá' để nạp dữ liệu!")
+            st.warning(f"Mã {t_input} không có trong bộ dữ liệu 3 sàn. Bro hãy kiểm tra lại file Excel.")
+    else:
+        st.info("Bro hãy chọn một con cá ở Tab Radar hoặc nhập mã để bắt đầu mổ xẻ.")
 
 with tab_history:
     st.subheader("📓 DANH SÁCH CÁ ĐÃ TẦM SOÁT")
