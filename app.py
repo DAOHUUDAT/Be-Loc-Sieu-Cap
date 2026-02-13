@@ -5,6 +5,12 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from datetime import datetime
 
+# Khởi tạo trạng thái bộ nhớ nếu chưa có
+if 'selected_fish' not in st.session_state:
+    st.session_state.selected_fish = ""
+if 'current_tab' not in st.session_state:
+    st.session_state.current_tab = "Radar Elite"
+
 def get_star_rating(g_margin, debt_ratio, ttm_profit):
     stars = 0
     # Tiêu chí 1: Biên lợi nhuận gộp tốt (>15%)
@@ -21,7 +27,7 @@ def get_star_rating(g_margin, debt_ratio, ttm_profit):
     return "⭐" * stars if stars > 0 else "🥚 (Cần theo dõi thêm)"
 
 # --- 1. CẤU HÌNH HỆ THỐNG GIAO DIỆN ---
-st.set_page_config(page_title="HÃY CHỌN CÁ ĐÚNG v6.3.5", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="HÃY CHỌN CÁ ĐÚNG v6.3.9", layout="wide", initial_sidebar_state="expanded")
 
 st.markdown("""
     <style>
@@ -204,9 +210,17 @@ try:
 except: pass
 
 # --- 4. HỆ THỐNG TABS ---
-# Thay dòng st.tabs cũ bằng dòng này để lưu trạng thái vào biến selected_tab
-tab_radar, tab_analysis, tab_bctc, tab_history = st.tabs(["🎯 RADAR ELITE", "💎 CHI TIẾT SIÊU CÁ", "📊 MỔ XẺ BCTC", "📓 SỔ VÀNG"])
+# Định nghĩa danh sách tab
+tabs = ["Radar Elite", "Chi tiết siêu cá", "BCTC"]
 
+# Tìm index của tab đang chọn để đồng bộ giao diện
+try:
+    active_tab_index = tabs.index(st.session_state.current_tab)
+except ValueError:
+    active_tab_index = 0
+
+# Tạo tabs với cơ chế chọn tự động
+tab_radar, tab_detail, tab_bctc = st.tabs(tabs)
 with tab_radar:
     st.subheader("🤖 Top 20 SIÊU CÁ")
     
