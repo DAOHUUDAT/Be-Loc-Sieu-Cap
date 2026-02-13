@@ -150,7 +150,7 @@ t_input = st.text_input("Nhập mã cá để soi (VD: HPG, VCB, HSG...):", valu
         st.write("- **🌊 Sóng:** Vol > 150% trung bình 20 phiên - dấu hiệu 'cá mập' đang đẩy giá.")
         st.write("- **🌡️ Nhiệt độ (RSI):** Nóng (>70) dễ điều chỉnh, Lạnh (<30) quá bán.")
         
-        st.divider() 
+    st.divider() 
         
         # PHẦN CHI TIẾT (Lý giải chuyên sâu cho Tab Phân Tích)
         st.markdown(f"### 💎 Mổ xẻ chi tiết: {t_input}")
@@ -441,7 +441,7 @@ with tab_bctc:
                         st.balloons() # Nổ bóng bay cho siêu cá!
                         st.success("🚀 PHÁT HIỆN SIÊU CÁ 5 SAO!")
 
-                    st.divider()
+    st.divider()
 
                     st.write("**🩺 Chẩn đoán nội tại:**")
                     if debt_ratio > 1.5:
@@ -461,7 +461,7 @@ with tab_bctc:
                     st.subheader("🛠️ Chế độ Mổ xẻ PDF")
                     st.write("Số liệu Yahoo đang bị kẹt, bro hãy xem PDF để tự tầm soát nhé!")
                 
-            st.divider()
+    st.divider()
             st.info(f"💡 **Lời khuyên:** Cá lý tưởng là cá có Lợi nhuận TTM tăng trưởng đều.")
         else:
             st.warning("Yahoo Finance chưa phản hồi dữ liệu.")
