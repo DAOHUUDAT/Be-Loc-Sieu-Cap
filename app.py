@@ -16,23 +16,52 @@ def load_vietstock_data():
     combined_df = pd.concat([pd.read_excel(url) for url in urls])
     return combined_df
 
+def expert_moxe_analysis(ticker, row_data):
+    # Chuẩn bị dữ liệu từ Excel để gửi cho Gemini
+    context = f"""
+    Mã cổ phiếu: {ticker}
+    - EPS: {row_data.get('EPS', 'N/A')}
+    - P/E: {row_data.get('P/E', 'N/A')}
+    - ROE: {row_data.get('ROE', 'N/A')}
+    - Biên lợi nhuận gộp: {row_data.get('Biên lợi nhuận gộp', 'N/A')}%
+    - Nợ/VCSH: {row_data.get('Nợ/VCSH', 'N/A')}
+    - Hàng tồn kho: {row_data.get('Hàng tồn kho', 'N/A')}
+    """
+    
+    prompt = f"""
+    Bạn là một chuyên gia phân tích chứng khoán theo trường phái Trường Money và CANSLIM. 
+    Hãy mổ xẻ mã {ticker} theo đúng cấu trúc 7 phần:
+    I. PHÂN TÍCH KỸ THUẬT (Dựa trên xu hướng giả định từ dữ liệu)
+    II. PHÂN TÍCH TÀI CHÍNH (Dựa trên số liệu: {context})
+    III. ĐỊNH GIÁ HIỆN TẠI (So sánh P/E với ngành)
+    IV. LUẬN ĐIỂM ĐẦU TƯ
+    V. ĐỊNH GIÁ TƯƠNG LAI (Mục tiêu 12 tháng)
+    VI. ĐÁNH GIÁ TỔNG QUAN
+    VII. KẾT LUẬN CHUYÊN GIA
+    
+    Hãy dùng ngôn ngữ của 'Ngư dân săn cá lớn', thực chiến và quyết đoán.
+    """
+    # Lưu ý: Thay 'ask_gemini' bằng hàm gọi API thực tế của bro hoặc dùng st.write tạm thời
+    # Ở đây tôi giả định bro dùng mô hình chat của Gemini
+    response = model.generate_content(prompt) # Nếu dùng google-generativeai
+    return response.text
+
 # Kích hoạt dữ liệu nền
 vietstock_db = load_vietstock_data()
 
-def get_star_rating(g_margin, debt_ratio, ttm_profit):
+def get_star_rating(row):
     stars = 0
-    # Tiêu chí 1: Biên lợi nhuận gộp tốt (>15%)
-    if g_margin > 15: stars += 2
-    elif g_margin > 10: stars += 1
+    # Thức ăn tăng trưởng (Doanh thu/Lợi nhuận)
+    if row.get('Tăng trưởng LNST', 0) > 25: stars += 2
     
-    # Tiêu chí 2: Tài chính lành mạnh (Nợ/CSH < 1.0)
-    if debt_ratio < 1.0: stars += 2
-    elif debt_ratio < 1.5: stars += 1
+    # Thức ăn dự trữ (Của để dành) - Trọng số cao nhất
+    if row.get(col_inventory, 0) > row.get('Trung bình tồn kho 4 quý', 0): stars += 3
     
-    # Tiêu chí 3: Có lãi TTM
-    if ttm_profit > 0: stars += 1
+    # Độc tố (Nợ vay)
+    if row.get(col_debt, 0) < 1.0: stars += 1
+    else: stars -= 1
     
-    return "⭐" * stars if stars > 0 else "🥚 (Cần theo dõi thêm)"
+    return "⭐" * max(stars, 1)
 
 # --- 1. CẤU HÌNH HỆ THỐNG GIAO DIỆN ---
 st.set_page_config(page_title="HÃY CHỌN CÁ ĐÚNG v6.3.5", layout="wide", initial_sidebar_state="expanded")
@@ -290,14 +319,42 @@ with tab_radar:
     st.table(df_radar.drop(columns=['priority']))
 
 with tab_analysis:
-    try:
-        t_obj = yf.Ticker(f"{t_input}.VN")
-        s_df = t_obj.history(period="1y")
-        if isinstance(s_df.columns, pd.MultiIndex): s_df.columns = s_df.columns.get_level_values(0)
-        curr_p = float(s_df['Close'].iloc[-1])
-        
-        # Lấy dữ liệu tài chính cho biểu đồ 5 quý
-        fin_q = t_obj.quarterly_financials
+    st.subheader("🔬 PHÒNG THÍ NGHIỆM: MỔ XẺ NỘI TẠNG CÁ")
+    
+    # Ô nhập mã trực tiếp hoặc lấy từ Sidebar
+    t_input = st.text_input("Nhập mã cá muốn mổ xẻ (VD: HSG, NKG...):", value=st.session_state.get('selected_ticker', "")).upper()
+
+    if t_input:
+        row = vietstock_db[vietstock_db[col_ticker] == t_input]
+        if not row.empty:
+            row = row.iloc[0]
+            
+            # Giao diện chia làm 2 cột: Thông số thô và Phân tích chuyên gia
+            col_left, col_right = st.columns([1, 2])
+            
+            with col_left:
+                st.write("### 📊 Thông số cơ bản")
+                st.metric("P/E hiện tại", f"{row.get(col_pe, 0):.2f}")
+                st.metric("ROE (%)", f"{row.get(col_roe, 0):.2f}%")
+                st.metric("Của để dành (Tỷ)", f"{row.get(col_inventory, 0)/1e9:,.1f}")
+                
+                # Thêm máy tính DCF mini
+                st.write("---")
+                st.write("### 🧮 Định giá nhanh (DCF)")
+                fcf = st.number_input("Dòng tiền FCF dự phóng (Tỷ)", value=1200)
+                wacc = st.slider("Lãi suất chiết khấu (WACC %)", 8, 15, 12)
+                upside_price = (fcf * 1000 / wacc) / 620 # Công thức đơn giản hóa
+                st.success(f"Giá trị hợp lý ước tính: **{upside_price:,.0f} VNĐ**")
+
+            with col_right:
+                st.write("### 🤖 Ý KIẾN CHUYÊN GIA GEMINI")
+                if st.button(f"🚀 Bắt đầu mổ xẻ mã {t_input}"):
+                    with st.spinner("Gemini đang đọc báo cáo và soi chart..."):
+                        # Gọi hàm phân tích đã tạo ở Bước 1
+                        analysis_text = expert_moxe_analysis(t_input, row)
+                        st.markdown(analysis_text)
+        else:
+            st.warning("Không tìm thấy mã này trong đại dương dữ liệu.")
         
         # TÍNH NIỀM TIN
         try:
