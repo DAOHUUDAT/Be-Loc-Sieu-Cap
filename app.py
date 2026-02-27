@@ -263,7 +263,7 @@ with tab_radar:
     
     with st.spinner('Đang tầm soát siêu cá...'):
         for tk in elite_20:
-try:
+    try:
                 # Tải dữ liệu 100 phiên để tính toán MA50 và RS
                 d = yf.download(f"{tk}.VN", period="100d", progress=False)
                 if not d.empty:
@@ -311,7 +311,7 @@ try:
                         "Thức ăn": f"{((ma20/p_c)-1)*100:+.1f}%" if p_c < ma20 else "✅ Đang no",
                         "priority": priority
                     })
-except: continue
+    except: continue
             
     # Sắp xếp để Siêu Cá hiện lên đầu danh sách
     df_radar = pd.DataFrame(radar_list).sort_values(by="priority")
@@ -357,7 +357,7 @@ with tab_analysis:
             st.warning("Không tìm thấy mã này trong đại dương dữ liệu.")
         
         # TÍNH NIỀM TIN
-try:
+    try:
             rev_growth = ((fin_q.loc['Total Revenue'].iloc[0] / fin_q.loc['Total Revenue'].iloc[4]) - 1)
             trust = int(min(100, (rev_growth * 100) + (50 if curr_p > s_df['Close'].rolling(50).mean().iloc[-1] else 0)))
 except: rev_growth = 0.1; trust = 65
@@ -376,9 +376,9 @@ except: rev_growth = 0.1; trust = 65
         if not fin_q.empty:
             # Lấy Doanh thu và Lợi nhuận ròng, chia cho 1 tỷ để đổi đơn vị
             q_rev = (fin_q.loc['Total Revenue'].iloc[:5][::-1]) / 1e9 
-try:
+    try:
                 q_net = (fin_q.loc['Net Income'].iloc[:5][::-1]) / 1e9
-except:
+    except:
                 q_net = (fin_q.loc['Net Income From Continuing Operation Net Extraordinaries'].iloc[:5][::-1]) / 1e9
             
             fig_fin = go.Figure()
@@ -437,7 +437,7 @@ except:
         if st.button(f"📌 Lưu {t_input} vào Sổ Vàng"):
             st.session_state.history_log.append({"Mã": t_input, "Giá": f"{curr_p:,.0f}", "Ngày": datetime.now().strftime("%d/%m")})
             st.rerun()
-except:
+    except:
         st.error(f"Đang tầm soát mã cá {t_input}...")
 
 with tab_bctc:
