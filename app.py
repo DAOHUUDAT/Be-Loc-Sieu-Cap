@@ -138,7 +138,7 @@ with st.sidebar:
     )
     
     st.header("🎮 ĐÀI CHỈ HUY")
-    t_input = st.text_input("🔍 SOI MÃ CÁ", "VGC").upper()
+    t_input = st.text_input("🔍 SOI MÃ CÁ", "VNI").upper()
     st.divider()
 
     # 2. Cẩm Nang Toàn Diện (Đã sửa lỗi thụt lề)
@@ -199,7 +199,7 @@ with st.sidebar:
     Hãy luôn tự tìm hiểu và quản trị rủi ro cá nhân.
     """)
 
-st.title("🚀 Bể Lọc v6.3.7: HÃY CHỌN CÁ ĐÚNG")
+st.title("🚀 Bể Lọc v6.3.15: HÃY CHỌN CÁ ĐÚNG")
 
 # --- 3. TRẠM QUAN TRẮC ĐẠI DƯƠNG (VN-INDEX) ---
 inf_factor = 1.0 
@@ -286,10 +286,41 @@ with tab_radar:
             
     # Sắp xếp để Siêu Cá hiện lên đầu danh sách
     df_radar = pd.DataFrame(radar_list).sort_values(by="priority")
-    # Ẩn cột priority khi hiển thị
-    st.table(df_radar.drop(columns=['priority']))
+
+    # --- ĐOẠN MỚI: BẢNG CÓ KHẢ NĂNG CLICK CHỌN ---
+    # Sử dụng st.dataframe để bật tính năng chọn dòng
+    selection = st.dataframe(
+        df_radar.drop(columns=['priority']),
+        use_container_width=True,
+        hide_index=True,
+        selection_mode="single_row",  # Cho phép click chọn 1 dòng
+        on_select="rerun"             # Click xong app tự load lại để lưu mã
+    )
+
+    # Kiểm tra nếu bro đã click vào một dòng
+    if len(selection.selection.rows) > 0:
+        selected_index = selection.selection.rows[0]
+        # Lấy mã cổ phiếu (Cá) từ dòng được chọn
+        ticker_clicked = df_radar.iloc[selected_index]['Mã']
+        
+        # Lưu vào "Sổ tay" Session State để Tab sau tự dùng
+        st.session_state.selected_ticker = ticker_clicked
+        
+        # Hiện thông báo nhỏ xác nhận
+        st.toast(f"🎯 Đã khóa mục tiêu: {ticker_clicked}!", icon="🚀")
+    # --- KẾT THÚC ĐOẠN MỚI ---
 
 with tab_analysis:
+    # --- ĐOẠN MỚI: TỰ ĐỘNG ĐIỀN MÃ KHI CLICK TỪ RADAR ---
+    # Ưu tiên lấy mã đã click, nếu chưa click thì mặc định là HSG
+    default_ticker = st.session_state.get('selected_ticker', "HSG")
+    
+    t_input = st.text_input(
+        "Nhập mã cá muốn mổ xẻ:", 
+        value=default_ticker,
+        key="ticker_input_main"
+    ).upper()
+    # ---------------------------------------------------
     try:
         t_obj = yf.Ticker(f"{t_input}.VN")
         s_df = t_obj.history(period="1y")
