@@ -155,12 +155,12 @@ with st.sidebar:
         f"""
         <div style="display: flex; justify-content: center;">
             <img src="{img_url}" style="width: 100%; border-radius: 15px; border: 2px solid #007bff; margin-bottom: 20px;" 
-                 onerror="this.onerror=null; this.src='https://cdn-icons-png.flaticon.com/512/1144/1144760.png';">
+                onerror="this.onerror=null; this.src='https://cdn-icons-png.flaticon.com/512/1144/1144760.png';">
         </div>
         """,
         unsafe_allow_html=True
     )
-    
+
     st.header("🎮 ĐÀI CHỈ HUY")
     t_input = st.text_input("🔍 SOI MÃ CÁ", "VNI").upper()
     st.divider()
@@ -317,8 +317,8 @@ with tab_radar:
         df_radar.drop(columns=['priority']),
         use_container_width=True,
         hide_index=True,
-        selection_mode="single-row",  # Cho phép click chọn 1 dòng
-        on_select="rerun"             # Click xong app tự load lại để lưu mã
+        selection_mode="single-row",  # Cho phép click chọn 1 dòng
+        on_select="rerun"             # Click xong app tự load lại để lưu mã
     )
 
     # Kiểm tra nếu bro đã click vào một dòng
@@ -389,7 +389,7 @@ with tab_analysis:
                 marker_color='#007bff',
                 text=q_rev.apply(lambda x: f"{x:,.0f}"), # Hiển thị số nguyên tỷ VNĐ
                 textposition='auto'
-            ))
+                ))
 
             # Thêm cột Lợi nhuận với số liệu hiển thị
             fig_fin.add_trace(go.Bar(
