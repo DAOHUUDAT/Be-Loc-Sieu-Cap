@@ -287,54 +287,56 @@ with tab_radar:
     # Sắp xếp để Siêu Cá hiện lên đầu danh sách
     df_radar = pd.DataFrame(radar_list).sort_values(by="priority")
 
-    # --- ĐOẠN MỚI: BẢNG CÓ KHẢ NĂNG CLICK CHỌN ---
-    # Sử dụng st.dataframe để bật tính năng chọn dòng
+    # --- ĐOẠN FIX: BIẾN BẢNG THÀNH BỘ CẢM BIẾN ---
+    df_radar = pd.DataFrame(radar_list).sort_values(by="priority")
+    
+    # Sử dụng st.dataframe để kích hoạt tính năng chọn dòng
     selection = st.dataframe(
         df_radar.drop(columns=['priority']),
         use_container_width=True,
         hide_index=True,
-        selection_mode="single-row",  # Cho phép click chọn 1 dòng
-        on_select="rerun"             # Click xong app tự load lại để lưu mã
+        selection_mode="single_row", # Cho phép chọn 1 mã
+        on_select="rerun"            # Click là app tự nạp lại dữ liệu
     )
 
-    # Kiểm tra nếu bro đã click vào một dòng
+    # Nếu bro click vào một dòng, lưu mã đó vào bộ nhớ 'selected_ticker'
     if len(selection.selection.rows) > 0:
         selected_index = selection.selection.rows[0]
-        # Lấy mã cổ phiếu (Cá) từ dòng được chọn
         ticker_clicked = df_radar.iloc[selected_index]['Mã']
-        
-        # Lưu vào "Sổ tay" Session State để Tab sau tự dùng
         st.session_state.selected_ticker = ticker_clicked
-        
-        # Hiện thông báo nhỏ xác nhận
-        st.toast(f"🎯 Đã khóa mục tiêu: {ticker_clicked}!", icon="🚀")
-    # --- KẾT THÚC ĐOẠN MỚI ---
+        # Ép app ghi nhận mã mới ngay lập tức
+        st.rerun()
 
 with tab_analysis:
-    # --- ĐOẠN MỚI: TỰ ĐỘNG ĐIỀN MÃ KHI CLICK TỪ RADAR ---
-    # Ưu tiên lấy mã đã click, nếu chưa click thì mặc định là HSG
-    default_ticker = st.session_state.get('selected_ticker', "HSG")
+    # --- ĐOẠN FIX: TỰ ĐỘNG ĐIỀN MÃ KHI CLICK ---
+    # Kiểm tra xem có mã nào được chọn từ Radar chưa, nếu chưa mặc định là HSG
+    init_ticker = st.session_state.get('selected_ticker', "HSG")
     
     t_input = st.text_input(
         "Nhập mã cá muốn mổ xẻ:", 
-        value=default_ticker,
-        key="ticker_input_main"
+        value=init_ticker,
+        key="main_search_input" # Thêm key để tránh xung đột dữ liệu
     ).upper()
     # ---------------------------------------------------
+
     try:
         t_obj = yf.Ticker(f"{t_input}.VN")
-        s_df = t_obj.history(period="1y")
-        if isinstance(s_df.columns, pd.MultiIndex): s_df.columns = s_df.columns.get_level_values(0)
-        curr_p = float(s_df['Close'].iloc[-1])
+        # ... (giữ nguyên toàn bộ phần try/except và biểu đồ phía dưới của bro)
         
-        # Lấy dữ liệu tài chính cho biểu đồ 5 quý
-        fin_q = t_obj.quarterly_financials
-        
-        # TÍNH NIỀM TIN
+        # TÍNH NIỀM TIN (Đã fix lỗi thiếu dữ liệu)
         try:
-            rev_growth = ((fin_q.loc['Total Revenue'].iloc[0] / fin_q.loc['Total Revenue'].iloc[4]) - 1)
+            # Kiểm tra xem có đủ ít nhất 5 quý không
+            if len(fin_q.columns) >= 5:
+                rev_growth = ((fin_q.loc['Total Revenue'].iloc[0] / fin_q.loc['Total Revenue'].iloc[4]) - 1)
+            else:
+                # Nếu thiếu dữ liệu, tính dựa trên số quý hiện có
+                rev_growth = ((fin_q.loc['Total Revenue'].iloc[0] / fin_q.loc['Total Revenue'].iloc[-1]) - 1)
+            
+            # Tính điểm trust
             trust = int(min(100, (rev_growth * 100) + (50 if curr_p > s_df['Close'].rolling(50).mean().iloc[-1] else 0)))
-        except: rev_growth = 0.1; trust = 65
+        except Exception as e: 
+            rev_growth = 0.1
+            trust = 65
 
         # 1. Hiển thị Chỉ số & Định giá
         st.markdown(f"### 🛡️ Niềm tin {t_input}: {trust}%")
