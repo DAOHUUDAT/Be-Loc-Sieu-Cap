@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from datetime import datetime
 
-@st.cache_data(ttl=3600) # Cache 1 tiếng cho dữ liệu Excel
+@st.cache_data(ttl=3600)
 def load_vietstock_data():
     urls = [
         "https://github.com/DAOHUUDAT/Be-Loc-Sieu-Cap/raw/refs/heads/main/data/HOSE.xlsx",
@@ -15,21 +15,44 @@ def load_vietstock_data():
     dfs = []
     for url in urls:
         try:
+            # 1. Đọc file
             df = pd.read_excel(url)
+            
+            # 2. Xử lý trùng lặp cột ngay tại file gốc
+            # Đổi tên các cột trùng lặp (ví dụ: 'A', 'A' thành 'A', 'A.1')
             df.columns = [str(c).strip() for c in df.columns]
+            if df.columns.duplicated().any():
+                cols = pd.Series(df.columns)
+                for dupe in cols[cols.duplicated()].unique():
+                    cols[cols == dupe] = [f"{dupe}_{i}" if i != 0 else dupe for i in range(sum(cols == dupe))]
+                df.columns = cols
+            
+            # 3. Loại bỏ các dòng hoàn toàn trống (thường là ở cuối file Excel)
+            df = df.dropna(how='all')
+            
             dfs.append(df)
-        except: continue
+        except Exception as e:
+            st.error(f"Lỗi đọc file {url}: {e}")
+            continue
+            
     if dfs:
-        # ignore_index=True sẽ đánh số lại từ đầu, tránh trùng lặp gây lỗi
-        combined_df = pd.concat(dfs, axis=0, ignore_index=True)
-        # Loại bỏ các cột bị trùng lặp hoàn toàn (nếu có)
-        combined_df = combined_df.loc[:, ~combined_df.columns.duplicated()]
-        return combined_df
+        # 4. Gộp dữ liệu với cơ chế xử lý lỗi Index
+        try:
+            combined_df = pd.concat(dfs, axis=0, ignore_index=True, sort=False)
+            # Một lần nữa, đảm bảo không có cột trùng sau khi gộp
+            combined_df = combined_df.loc[:, ~combined_df.columns.duplicated()]
+            return combined_df
+        except Exception as e:
+            st.error(f"Lỗi khi gộp đại dương dữ liệu: {e}")
+            return pd.DataFrame()
     return pd.DataFrame()
 
-# Khởi tạo DB và Bản đồ cột (Mapping) ngay lập tức
+# Khởi tạo DB và Mapping (Giữ nguyên phần này bên dưới hàm)
 vietstock_db = load_vietstock_data()
-COL_MAP = {str(c).lower(): c for c in vietstock_db.columns}
+if not vietstock_db.empty:
+    COL_MAP = {str(c).lower(): c for c in vietstock_db.columns}
+else:
+    COL_MAP = {}
 
 def quick_find_col(keyword):
     """Hàm tìm cột siêu tốc thay cho find_col cũ"""
