@@ -295,7 +295,7 @@ with tab_radar:
         df_radar.drop(columns=['priority']),
         use_container_width=True,
         hide_index=True,
-        selection_mode="single_row", # Cho phép chọn 1 mã
+        selection_mode="single-row", # Cho phép chọn 1 mã
         on_select="rerun"            # Click là app tự nạp lại dữ liệu
     )
 
