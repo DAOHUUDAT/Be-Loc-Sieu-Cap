@@ -295,8 +295,9 @@ with tab_radar:
         df_radar.drop(columns=['priority']),
         use_container_width=True,
         hide_index=True,
-        selection_mode="single-row", # Cho phép chọn 1 mã
-        on_select="rerun"            # Click là app tự nạp lại dữ liệu
+        # Sửa "single_row" thành "single-row" hoặc dùng cấu hình chuẩn dưới đây:
+        selection_mode="single-row",  
+        on_select="rerun"             
     )
 
     # Nếu bro click vào một dòng, lưu mã đó vào bộ nhớ 'selected_ticker'
