@@ -293,7 +293,7 @@ with tab_radar:
         df_radar.drop(columns=['priority']),
         use_container_width=True,
         hide_index=True,
-        selection_mode="single-row",  # Cho phép click chọn 1 dòng
+        selection_mode="single_row",  # Cho phép click chọn 1 dòng
         on_select="rerun"             # Click xong app tự load lại để lưu mã
     )
 
