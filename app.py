@@ -5,60 +5,27 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from datetime import datetime
 
-@st.cache_data(ttl=3600)
+@st.cache_data # Dùng cache để app chỉ tải một lần, cực nhanh
 def load_vietstock_data():
+    @st.cache_data(ttl=300)
+def load_price_batch(tickers, period="100d"):
+    data = {}
+    for tk in tickers:
+        try:
+            df = yf.download(f"{tk}.VN", period=period, progress=False)
+            if not df.empty:
+                data[tk] = df
+        except Exception as e:
+            print(f"Lỗi tải {tk}: {e}")
+    return data
     urls = [
         "https://github.com/DAOHUUDAT/Be-Loc-Sieu-Cap/raw/refs/heads/main/data/HOSE.xlsx",
         "https://github.com/DAOHUUDAT/Be-Loc-Sieu-Cap/raw/refs/heads/main/data/HNX.xlsx",
         "https://github.com/DAOHUUDAT/Be-Loc-Sieu-Cap/raw/refs/heads/main/data/UPCOM.xlsx"
     ]
-    dfs = []
-    for url in urls:
-        try:
-            # 1. Đọc file
-            df = pd.read_excel(url)
-            
-            # 2. Xử lý trùng lặp cột ngay tại file gốc
-            # Đổi tên các cột trùng lặp (ví dụ: 'A', 'A' thành 'A', 'A.1')
-            df.columns = [str(c).strip() for c in df.columns]
-            if df.columns.duplicated().any():
-                cols = pd.Series(df.columns)
-                for dupe in cols[cols.duplicated()].unique():
-                    cols[cols == dupe] = [f"{dupe}_{i}" if i != 0 else dupe for i in range(sum(cols == dupe))]
-                df.columns = cols
-            
-            # 3. Loại bỏ các dòng hoàn toàn trống (thường là ở cuối file Excel)
-            df = df.dropna(how='all')
-            
-            dfs.append(df)
-        except Exception as e:
-            st.error(f"Lỗi đọc file {url}: {e}")
-            continue
-            
-    if dfs:
-        # 4. Gộp dữ liệu với cơ chế xử lý lỗi Index
-        try:
-            combined_df = pd.concat(dfs, axis=0, ignore_index=True, sort=False)
-            # Một lần nữa, đảm bảo không có cột trùng sau khi gộp
-            combined_df = combined_df.loc[:, ~combined_df.columns.duplicated()]
-            return combined_df
-        except Exception as e:
-            st.error(f"Lỗi khi gộp đại dương dữ liệu: {e}")
-            return pd.DataFrame()
-    return pd.DataFrame()
-
-# Khởi tạo DB và Mapping (Giữ nguyên phần này bên dưới hàm)
-vietstock_db = load_vietstock_data()
-if not vietstock_db.empty:
-    COL_MAP = {str(c).lower(): c for c in vietstock_db.columns}
-else:
-    COL_MAP = {}
-
-def quick_find_col(keyword):
-    """Hàm tìm cột siêu tốc thay cho find_col cũ"""
-    for k, v in COL_MAP.items():
-        if keyword.lower() in k: return v
-    return None
+    # Gộp 3 sàn thành 1 đại dương dữ liệu duy nhất
+    combined_df = pd.concat([pd.read_excel(url) for url in urls])
+    return combined_df
 
 # Kích hoạt dữ liệu nền
 vietstock_db = load_vietstock_data()
@@ -79,25 +46,6 @@ def get_star_rating(g_margin, debt_ratio, ttm_profit):
     return "⭐" * stars if stars > 0 else "🥚 (Cần theo dõi thêm)"
 
 # --- 1. CẤU HÌNH HỆ THỐNG GIAO DIỆN ---
-@st.cache_data(ttl=300) # Cache 5 phút cho dữ liệu giá
-def load_ticker_data(ticker, period="150d"):
-    try:
-        data = yf.download(f"{ticker}.VN", period=period, progress=False)
-        if data.empty: return pd.DataFrame()
-        if isinstance(data.columns, pd.MultiIndex): 
-            data.columns = data.columns.get_level_values(0)
-        return data
-    except: return pd.DataFrame()
-
-def compute_rsi_pro(data, window=14):
-    """RSI chuẩn EMA - Giúp bắt điểm đảo chiều nhạy hơn"""
-    delta = data.diff()
-    gain = delta.clip(lower=0)
-    loss = -delta.clip(upper=0)
-    avg_gain = gain.ewm(alpha=1/window, min_periods=window, adjust=False).mean()
-    avg_loss = loss.ewm(alpha=1/window, min_periods=window, adjust=False).mean()
-    rs = avg_gain / avg_loss
-    return 100 - (100 / (1 + rs))
 st.set_page_config(page_title="HÃY CHỌN CÁ ĐÚNG v6.3.5", layout="wide", initial_sidebar_state="expanded")
 
 st.markdown("""
@@ -285,57 +233,111 @@ except: pass
 tab_radar, tab_analysis, tab_bctc, tab_history = st.tabs(["🎯 RADAR ELITE", "💎 CHI TIẾT SIÊU CÁ", "📊 MỔ XẺ BCTC", "📓 SỔ VÀNG"])
 
 with tab_radar:
-    st.subheader("🤖 Top 20 SIÊU CÁ (Hệ thống Radar)")
-    elite_20 = ["DGC", "MWG", "FPT", "TCB", "SSI", "HPG", "GVR", "CTR", "DBC", "VNM", "STB", "MBB", "ACB", "KBC", "VGC", "PVS", "PVD", "ANV", "VHC", "REE"]
-    radar_list = []
+    st.subheader("🤖 Top 20 SIÊU CÁ")
     
-    with st.spinner('Đang quét tín hiệu từ đại dương...'):
-        for tk in elite_20:
-            d = load_ticker_data(tk) # Dùng hàm đã cache
-            if d.empty: continue
-            
-            p_c = d['Close'].iloc[-1]
-            v_now, v_avg = d['Volume'].iloc[-1], d['Volume'].rolling(20).mean().iloc[-1]
-            ma20, ma50 = d['Close'].rolling(20).mean().iloc[-1], d['Close'].rolling(50).mean().iloc[-1]
-            
-            # Tính RS (Sức mạnh tương đối)
-            stock_perf = (p_c / d['Close'].iloc[-20]) - 1
-            vni_perf = (v_c / vni['Close'].iloc[-20]) - 1 if not vni.empty else 0
-            is_stronger = stock_perf > vni_perf
-            
-            # Tính RSI Pro
-            curr_rsi = compute_rsi_pro(d['Close']).iloc[-1]
-            temp = "🔥 Nóng" if curr_rsi > 70 else "❄️ Lạnh" if curr_rsi < 30 else "🌤️ Êm"
-            
-            # Phân loại Cá theo tiêu chuẩn mới
-            if p_c > ma20 and v_now > v_avg * 1.5 and is_stronger:
-                loai_ca, priority = "🚀 SIÊU CÁ", 1
-            elif p_c > ma20 and p_c > ma50:
-                loai_ca, priority = "Cá Lớn 🐋", 2
-            elif p_c > ma20:
-                loai_ca, priority = "Cá Đang Lớn 🐡", 3
-            else:
-                loai_ca, priority = "Cá Nhỏ 🐟", 4
-            
-            radar_list.append({
-                "Mã": tk, "Giá": f"{p_c:,.0f}",
-                "Sóng": "🌊 Mạnh" if v_now > v_avg * 1.5 else "☕ Lặng",
-                "Nhiệt độ": temp, "Đại Dương": "💪 Khỏe" if is_stronger else "🐌 Yếu",
-                "Loại": loai_ca, "Thức ăn": f"{((ma20/p_c)-1)*100:+.1f}%" if p_c < ma20 else "✅ Đang no",
-                "priority": priority, "RS_Raw": stock_perf - vni_perf
-            })
-
-    df_radar = pd.DataFrame(radar_list).sort_values(by=["priority", "RS_Raw"], ascending=[True, False])
+    # Hiển thị trạng thái Đại dương để làm tham chiếu
+    status_color = "green" if inf_factor > 1 else "red"
+    st.markdown(f"**Trạng thái dòng nước:** <span style='color:{status_color}'>{ '🌊 Thuận lợi (Hệ số x' + str(inf_factor) + ')' if inf_factor > 1 else '⚠️ Khó khăn (Hệ số x' + str(inf_factor) + ')' }</span>", unsafe_allow_html=True)
     
-    selection = st.dataframe(
-        df_radar.drop(columns=['priority', 'RS_Raw']),
-        use_container_width=True, hide_index=True,
-        selection_mode="single-row", on_select="rerun"
-    )
+    # ===== DANH MỤC 20 MÃ TRỌNG ĐIỂM =====
+elite_20 = [
+    "HPG","DIG","SSI","VND","PVD","PVS","DGC","FPT","VCI","VIX",
+    "MWG","GEX","KBC","DXG","HSG","NLG","CTG","TPB","SHS","HCM"
+]
 
-    if len(selection.selection.rows) > 0:
-        st.session_state.selected_ticker = df_radar.iloc[selection.selection.rows[0]]['Mã']
-        st.toast(f"🎯 Khóa mục tiêu: {st.session_state.selected_ticker}")
+st.info("🔄 Đang quét Radar...")
+
+# Load toàn bộ giá một lần (cache)
+price_data = load_price_batch(elite_20)
+
+radar_list = []
+
+for tk, d in price_data.items():
+    if len(d) < 50:
+        continue
+
+    close = d["Close"]
+    volume = d["Volume"]
+
+    ma20 = close.rolling(20).mean()
+    ma50 = close.rolling(50).mean()
+
+    vol_ma20 = volume.rolling(20).mean()
+
+    curr_p = close.iloc[-1]
+    curr_vol = volume.iloc[-1]
+
+    # ===== ĐIỀU KIỆN SIÊU CÁ =====
+    if (
+        curr_p > ma20.iloc[-1] and
+        curr_vol > 1.5 * vol_ma20.iloc[-1]
+    ):
+        radar_list.append({
+            "Ticker": tk,
+            "Giá": round(curr_p,2),
+            "Vol": int(curr_vol),
+            "Trạng thái": "SIÊU CÁ"
+        })
+
+# Hiển thị
+if radar_list:
+    df_radar = pd.DataFrame(radar_list)
+
+# ===== SORT THEO VOLUME GIẢM DẦN =====
+df_radar = df_radar.sort_values(by="Vol", ascending=False)
+
+st.dataframe(df_radar, use_container_width=True)
+else:
+    st.warning("Chưa có mã đạt điều kiện hôm nay.")
+            try:
+                # Tải dữ liệu 100 phiên để tính toán MA50 và RS
+                d = yf.download(f"{tk}.VN", period="100d", progress=False)
+                if not d.empty:
+                    if isinstance(d.columns, pd.MultiIndex): d.columns = d.columns.get_level_values(0)
+                    
+                    p_c = d['Close'].iloc[-1]
+                    v_now = d['Volume'].iloc[-1]
+                    v_avg = d['Volume'].rolling(20).mean().iloc[-1]
+                    ma20 = d['Close'].rolling(20).mean().iloc[-1]
+                    ma50 = d['Close'].rolling(50).mean().iloc[-1]
+                    
+                    # 1. Tính nhiệt độ RSI
+                    d['rsi_val'] = compute_rsi(d['Close'])
+                    curr_rsi = d['rsi_val'].iloc[-1]
+                    temp = "🔥 Nóng" if curr_rsi > 70 else "❄️ Lạnh" if curr_rsi < 30 else "🌤️ Êm"
+                    
+                    # 2. Tính sức mạnh tương quan (RS - Relative Strength)
+                    # Hiệu suất mã vs VN-Index trong 20 phiên
+                    stock_perf = (p_c / d['Close'].iloc[-20]) - 1
+                    vni_perf = (v_c / vni['Close'].iloc[-20]) - 1 if not vni.empty else 0
+                    is_stronger = stock_perf > vni_perf
+                    
+                    # 3. PHÂN LOẠI SIÊU CÁ (Theo triết lý hôm qua đã nghiên cứu)
+                    # Điều kiện Siêu Cá: Giá > MA20, Vol > 1.2x trung bình, và Khỏe hơn Đại dương
+                    if p_c > ma20 and v_now > v_avg * 1.2 and is_stronger:
+                        loai_ca = "🚀 SIÊU CÁ"
+                        priority = 1
+                    elif p_c > ma20 and p_c > ma50:
+                        loai_ca = "Cá Lớn 🐋"
+                        priority = 2
+                    elif p_c > ma20:
+                        loai_ca = "Cá Đang Lớn 🐡"
+                        priority = 3
+                    else:
+                        loai_ca = "Cá Nhỏ 🐟"
+                        priority = 4
+                        
+                    radar_list.append({
+                        "Mã": tk, 
+                        "Giá": f"{p_c:,.0f}",
+                        "Sóng": "🌊 Mạnh" if v_now > v_avg * 1.5 else "☕ Lặng",
+                        "Nhiệt độ": temp,
+                        "Đại Dương": "💪 Khỏe" if is_stronger else "🐌 Yếu",
+                        "Loại": loai_ca,
+                        "Thức ăn": f"{((ma20/p_c)-1)*100:+.1f}%" if p_c < ma20 else "✅ Đang no",
+                        "priority": priority
+                    })
+            except: continue
             
     # Sắp xếp để Siêu Cá hiện lên đầu danh sách
     df_radar = pd.DataFrame(radar_list).sort_values(by="priority")
@@ -383,21 +385,11 @@ with tab_analysis:
         # Lấy dữ liệu tài chính cho biểu đồ 5 quý
         fin_q = t_obj.quarterly_financials
         
-        # TÍNH NIỀM TIN CHUẨN HÓA (50% FA + 50% TA)
+        # TÍNH NIỀM TIN
         try:
-            # FA (25đ cho doanh thu dương, 25đ cho tăng trưởng)
-            rev_now = fin_q.loc['Total Revenue'].iloc[0]
-            rev_old = fin_q.loc['Total Revenue'].iloc[4]
-            rev_growth = (rev_now / rev_old) - 1
-            fa_score = (25 if rev_now > 0 else 0) + min(25, max(0, rev_growth * 50))
-            
-            # TA (30đ cho xu hướng, 20đ cho RSI an toàn)
-            ma50_val = s_df['Close'].rolling(50).mean().iloc[-1]
-            ta_score = (30 if curr_p > ma50_val else 0) + (20 if 40 < curr_rsi < 70 else 0)
-            
-            trust = int(fa_score + ta_score)
-        except: 
-            rev_growth = 0.1; trust = 65
+            rev_growth = ((fin_q.loc['Total Revenue'].iloc[0] / fin_q.loc['Total Revenue'].iloc[4]) - 1)
+            trust = int(min(100, (rev_growth * 100) + (50 if curr_p > s_df['Close'].rolling(50).mean().iloc[-1] else 0)))
+        except: rev_growth = 0.1; trust = 65
 
         # 1. Hiển thị Chỉ số & Định giá
         st.markdown(f"### 🛡️ Niềm tin {t_input}: {trust}%")
@@ -495,11 +487,15 @@ with tab_bctc:
             row = fish_data.iloc[0]
             
             # --- TỰ ĐỘNG TÌM CỘT DỰA TRÊN TỪ KHÓA (Vì tiêu đề Vietstock rất dài) ---
-            # Gọi trực tiếp hàm siêu tốc đã định nghĩa ở đầu app
-            col_rev = quick_find_col("Doanh thu thuần") or quick_find_col("Doanh thu bán hàng")
-            col_profit = quick_find_col("Lợi nhuận sau thuế")
-            col_inventory = quick_find_col("Hàng tồn kho")
-            col_cash = quick_find_col("Tiền và các khoản tương đương tiền")
+            # Ví dụ: "Tổng doanh thu bán hàng...", "Lợi nhuận sau thuế...", "Hàng tồn kho..."
+            def find_col(keyword):
+                cols = [c for c in vietstock_db.columns if keyword.lower() in str(c).lower()]
+                return cols[0] if cols else None
+
+            col_rev = find_col("Doanh thu thuần") or find_col("Doanh thu bán hàng")
+            col_profit = find_col("Lợi nhuận sau thuế")
+            col_inventory = find_col("Hàng tồn kho")
+            col_cash = find_col("Tiền và các khoản tương đương tiền")
 
             # --- GIAO DIỆN HIỂN THỊ 2 CỘT ---
             col_fa1, col_fa2 = st.columns([2, 1])
@@ -538,7 +534,7 @@ with tab_bctc:
             st.divider()
             
             # --- TƯ DUY A7 & TRƯỜNG MONEY ---
-            st.subheader("🧠 Phân tích chuyên sâu (Tầm nhìn tầm soát)")
+            st.subheader("🧠 Phân tích chuyên sâu (Tầm nhìn A7)")
             c1, c2 = st.columns(2)
             with c1:
                 if col_inventory:
