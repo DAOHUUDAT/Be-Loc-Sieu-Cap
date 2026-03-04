@@ -7,17 +7,6 @@ from datetime import datetime
 
 @st.cache_data # Dùng cache để app chỉ tải một lần, cực nhanh
 def load_vietstock_data():
-    @st.cache_data(ttl=300)
-def load_price_batch(tickers, period="100d"):
-    data = {}
-    for tk in tickers:
-        try:
-            df = yf.download(f"{tk}.VN", period=period, progress=False)
-            if not df.empty:
-                data[tk] = df
-        except Exception as e:
-            print(f"Lỗi tải {tk}: {e}")
-    return data
     urls = [
         "https://github.com/DAOHUUDAT/Be-Loc-Sieu-Cap/raw/refs/heads/main/data/HOSE.xlsx",
         "https://github.com/DAOHUUDAT/Be-Loc-Sieu-Cap/raw/refs/heads/main/data/HNX.xlsx",
@@ -239,56 +228,12 @@ with tab_radar:
     status_color = "green" if inf_factor > 1 else "red"
     st.markdown(f"**Trạng thái dòng nước:** <span style='color:{status_color}'>{ '🌊 Thuận lợi (Hệ số x' + str(inf_factor) + ')' if inf_factor > 1 else '⚠️ Khó khăn (Hệ số x' + str(inf_factor) + ')' }</span>", unsafe_allow_html=True)
     
-    # ===== DANH MỤC 20 MÃ TRỌNG ĐIỂM =====
-elite_20 = [
-    "HPG","DIG","SSI","VND","PVD","PVS","DGC","FPT","VCI","VIX",
-    "MWG","GEX","KBC","DXG","HSG","NLG","CTG","TPB","SHS","HCM"
-]
-
-st.info("🔄 Đang quét Radar...")
-
-# Load toàn bộ giá một lần (cache)
-price_data = load_price_batch(elite_20)
-
-radar_list = []
-
-for tk, d in price_data.items():
-    if len(d) < 50:
-        continue
-
-    close = d["Close"]
-    volume = d["Volume"]
-
-    ma20 = close.rolling(20).mean()
-    ma50 = close.rolling(50).mean()
-
-    vol_ma20 = volume.rolling(20).mean()
-
-    curr_p = close.iloc[-1]
-    curr_vol = volume.iloc[-1]
-
-    # ===== ĐIỀU KIỆN SIÊU CÁ =====
-    if (
-        curr_p > ma20.iloc[-1] and
-        curr_vol > 1.5 * vol_ma20.iloc[-1]
-    ):
-        radar_list.append({
-            "Ticker": tk,
-            "Giá": round(curr_p,2),
-            "Vol": int(curr_vol),
-            "Trạng thái": "SIÊU CÁ"
-        })
-
-# Hiển thị
-if radar_list:
-    df_radar = pd.DataFrame(radar_list)
-
-# ===== SORT THEO VOLUME GIẢM DẦN =====
-df_radar = df_radar.sort_values(by="Vol", ascending=False)
-
-st.dataframe(df_radar, use_container_width=True)
-else:
-    st.warning("Chưa có mã đạt điều kiện hôm nay.")
+    # Danh mục 20 mã trọng điểm
+    elite_20 = ["DGC", "MWG", "FPT", "TCB", "SSI", "HPG", "GVR", "CTR", "DBC", "VNM", "STB", "MBB", "ACB", "KBC", "VGC", "PVS", "PVD", "ANV", "VHC", "REE"]
+    radar_list = []
+    
+    with st.spinner('Đang tầm soát siêu cá...'):
+        for tk in elite_20:
             try:
                 # Tải dữ liệu 100 phiên để tính toán MA50 và RS
                 d = yf.download(f"{tk}.VN", period="100d", progress=False)
