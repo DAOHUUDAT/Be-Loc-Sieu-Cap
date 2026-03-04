@@ -16,11 +16,24 @@ def load_vietstock_data():
     for url in urls:
         try:
             df = pd.read_excel(url)
+            # 1. Xóa các dòng/cột hoàn toàn trống để tránh rác
+            df = df.dropna(how='all', axis=0).dropna(how='all', axis=1)
+            # 2. Làm sạch tên cột
             df.columns = [str(c).strip() for c in df.columns]
+            # 3. Xử lý trùng tên cột ngay trong từng file (Fix lỗi InvalidIndexError)
+            if df.columns.duplicated().any():
+                df = df.loc[:, ~df.columns.duplicated()]
             dfs.append(df)
-        except: continue
-    combined_df = pd.concat(dfs) if dfs else pd.DataFrame()
-    return combined_df
+        except: 
+            continue
+            
+    if dfs:
+        # ignore_index=True để đánh số lại dòng từ 0, tránh trùng lặp Index dòng
+        combined_df = pd.concat(dfs, axis=0, ignore_index=True, sort=False)
+        # Đảm bảo một lần nữa không có cột trùng sau khi gộp
+        combined_df = combined_df.loc[:, ~combined_df.columns.duplicated()]
+        return combined_df
+    return pd.DataFrame()
 
 # Khởi tạo DB và Bản đồ cột (Mapping) ngay lập tức
 vietstock_db = load_vietstock_data()
