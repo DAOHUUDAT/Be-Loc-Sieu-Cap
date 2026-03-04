@@ -7,7 +7,7 @@ from datetime import datetime
 
 @st.cache_data # Dùng cache để app chỉ tải một lần, cực nhanh
 def load_vietstock_data():
-    urls = [
+    urls = [
         "https://github.com/DAOHUUDAT/Be-Loc-Sieu-Cap/raw/refs/heads/main/data/HOSE.xlsx",
         "https://github.com/DAOHUUDAT/Be-Loc-Sieu-Cap/raw/refs/heads/main/data/HNX.xlsx",
         "https://github.com/DAOHUUDAT/Be-Loc-Sieu-Cap/raw/refs/heads/main/data/UPCOM.xlsx"
