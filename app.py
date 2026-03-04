@@ -19,8 +19,13 @@ def load_vietstock_data():
             df.columns = [str(c).strip() for c in df.columns]
             dfs.append(df)
         except: continue
-    combined_df = pd.concat(dfs) if dfs else pd.DataFrame()
-    return combined_df
+    if dfs:
+        # ignore_index=True sẽ đánh số lại từ đầu, tránh trùng lặp gây lỗi
+        combined_df = pd.concat(dfs, axis=0, ignore_index=True)
+        # Loại bỏ các cột bị trùng lặp hoàn toàn (nếu có)
+        combined_df = combined_df.loc[:, ~combined_df.columns.duplicated()]
+        return combined_df
+    return pd.DataFrame()
 
 # Khởi tạo DB và Bản đồ cột (Mapping) ngay lập tức
 vietstock_db = load_vietstock_data()
