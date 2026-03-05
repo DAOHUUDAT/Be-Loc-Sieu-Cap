@@ -292,13 +292,13 @@ with tab_radar:
     # Tạo DataFrame và sắp xếp
     df_radar = pd.DataFrame(radar_list).sort_values(by=["priority", "RS_Raw"], ascending=[True, False])
     
-    # HIỂN THỊ DUY NHẤT 1 BẢNG (Dùng gạch dưới single_row để fix lỗi)
+    # HIỂN THỊ DUY NHẤT 1 BẢNG 
     selection = st.dataframe(
         df_radar.drop(columns=['priority', 'RS_Raw']), 
         use_container_width=True, 
         hide_index=True,
-        selection_mode="single_row", # Bắt buộc dùng gạch dưới _
-        on_select="rerun"            # Lệnh này giúp app nhận biết khi bro click
+        selection_mode="single-row", 
+        on_select="rerun"            
     )
 
     # ĐÂY LÀ ĐOẠN QUAN TRỌNG NHẤT ĐỂ NHẢY TAB
