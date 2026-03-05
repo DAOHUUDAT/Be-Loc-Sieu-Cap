@@ -3,34 +3,36 @@ import yfinance as yf
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-
-@st.cache_data(ttl=600) # Lưu bộ nhớ đệm 10 phút để app chạy nhanh
-def load_ticker_data(ticker):
-    """Hàm máy bơm: Hút dữ liệu giá từ Yahoo Finance"""
-    try:
-        # Tự động thêm đuôi .VN cho các mã cá sàn Việt Nam
-        data = yf.download(f"{ticker}.VN", period="150d", progress=False)
-        if not data.empty and isinstance(data.columns, pd.MultiIndex):
-            data.columns = data.columns.get_level_values(0)
-        return data
-    except Exception as e:
-        print(e)
-        return pd.DataFrame()
+from datetime import datetime
 
 @st.cache_data(ttl=3600)
+def load_all_radar_data(tickers):
+    """Hút dữ liệu của tất cả cá trong Radar một lần duy nhất để tăng tốc"""
+    try:
+        # Tải gộp tất cả mã trong 1 lần gọi lệnh (nhanh hơn gấp 5-10 lần)
+        data = yf.download([f"{t}.VN" for t in tickers], period="150d", progress=False, group_by='ticker')
+        return data
+    except:
+        return None
+
+# Cần thêm hàm này để tính 'Nhiệt độ' (RSI) mà Radar đang gọi
+def compute_rsi_pro(data, window=14):
+    delta = data.diff()
+    gain = (delta.where(delta > 0, 0)).rolling(window=window).mean()
+    loss = (-delta.where(delta < 0, 0)).rolling(window=window).mean()
+    rs = gain / loss
+    return 100 - (100 / (1 + rs))
 def load_vietstock_data():
     urls = [
         "https://github.com/DAOHUUDAT/Be-Loc-Sieu-Cap/raw/refs/heads/main/data/HOSE.xlsx",
         "https://github.com/DAOHUUDAT/Be-Loc-Sieu-Cap/raw/refs/heads/main/data/HNX.xlsx",
         "https://github.com/DAOHUUDAT/Be-Loc-Sieu-Cap/raw/refs/heads/main/data/UPCOM.xlsx"
     ]
+    # Gộp 3 sàn thành 1 đại dương dữ liệu duy nhất
+    combined_df = pd.concat([pd.read_excel(url) for url in urls])
+    return combined_df
 
-    dfs = []
-    for url in urls:
-        dfs.append(pd.read_excel(url))
-
-    return pd.concat(dfs, ignore_index=True)
-
+# Kích hoạt dữ liệu nền
 vietstock_db = load_vietstock_data()
 
 def get_star_rating(g_margin, debt_ratio, ttm_profit):
@@ -240,11 +242,18 @@ tab_radar, tab_analysis, tab_bctc, tab_history = st.tabs(["🎯 RADAR ELITE", "�
 with tab_radar:
     st.subheader("🤖 Top 20 SIÊU CÁ (Hệ thống Radar)")
     elite_20 = ["DGC", "MWG", "FPT", "TCB", "SSI", "HPG", "GVR", "CTR", "DBC", "VNM", "STB", "MBB", "ACB", "KBC", "VGC", "PVS", "PVD", "ANV", "VHC", "REE"]
+    
+    # Hút toàn bộ dữ liệu 20 con cá về trước
+    all_data = load_all_radar_data(elite_20)
     radar_list = []
     
     with st.spinner('Đang quét tín hiệu từ đại dương...'):
         for tk in elite_20:
-            d = load_ticker_data(tk) 
+            # Lấy dữ liệu từ bản gộp, không tải lại nữa
+            try:
+                d = all_data[f"{tk}.VN"].dropna()
+            except: continue
+            
             if d.empty: continue
             
             p_c = d['Close'].iloc[-1]
