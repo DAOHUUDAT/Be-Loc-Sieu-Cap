@@ -3,7 +3,6 @@ import yfinance as yf
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from datetime import datetime
 
 @st.cache_data(ttl=600) # Lưu bộ nhớ đệm 10 phút để app chạy nhanh
 def load_ticker_data(ticker):
@@ -14,27 +13,24 @@ def load_ticker_data(ticker):
         if not data.empty and isinstance(data.columns, pd.MultiIndex):
             data.columns = data.columns.get_level_values(0)
         return data
-    except:
+    except Exception as e:
+        print(e)
         return pd.DataFrame()
 
-# Cần thêm hàm này để tính 'Nhiệt độ' (RSI) mà Radar đang gọi
-def compute_rsi_pro(data, window=14):
-    delta = data.diff()
-    gain = (delta.where(delta > 0, 0)).rolling(window=window).mean()
-    loss = (-delta.where(delta < 0, 0)).rolling(window=window).mean()
-    rs = gain / loss
-    return 100 - (100 / (1 + rs))
+@st.cache_data(ttl=3600)
 def load_vietstock_data():
     urls = [
         "https://github.com/DAOHUUDAT/Be-Loc-Sieu-Cap/raw/refs/heads/main/data/HOSE.xlsx",
         "https://github.com/DAOHUUDAT/Be-Loc-Sieu-Cap/raw/refs/heads/main/data/HNX.xlsx",
         "https://github.com/DAOHUUDAT/Be-Loc-Sieu-Cap/raw/refs/heads/main/data/UPCOM.xlsx"
     ]
-    # Gộp 3 sàn thành 1 đại dương dữ liệu duy nhất
-    combined_df = pd.concat([pd.read_excel(url) for url in urls])
-    return combined_df
 
-# Kích hoạt dữ liệu nền
+    dfs = []
+    for url in urls:
+        dfs.append(pd.read_excel(url))
+
+    return pd.concat(dfs, ignore_index=True)
+
 vietstock_db = load_vietstock_data()
 
 def get_star_rating(g_margin, debt_ratio, ttm_profit):
