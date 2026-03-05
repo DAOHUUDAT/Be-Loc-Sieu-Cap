@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from datetime import datetime
 
-@st.cache_data(ttl=3600) # Cache 1 tiếng cho dữ liệu Excel
+@st.cache_data(ttl=3600)
 def load_vietstock_data():
     urls = [
         "https://github.com/DAOHUUDAT/Be-Loc-Sieu-Cap/raw/refs/heads/main/data/HOSE.xlsx",
@@ -16,23 +16,16 @@ def load_vietstock_data():
     for url in urls:
         try:
             df = pd.read_excel(url)
-            # 1. Xóa các dòng/cột hoàn toàn trống để tránh rác
-            df = df.dropna(how='all', axis=0).dropna(how='all', axis=1)
-            # 2. Làm sạch tên cột
+            # Làm sạch tên cột
             df.columns = [str(c).strip() for c in df.columns]
-            # 3. Xử lý trùng tên cột ngay trong từng file (Fix lỗi InvalidIndexError)
-            if df.columns.duplicated().any():
-                df = df.loc[:, ~df.columns.duplicated()]
-            dfs.append(df)
-        except: 
-            continue
-            
+            # Xóa cột trùng tên ngay lập tức (Quan trọng nhất!)
+            df = df.loc[:, ~df.columns.duplicated()]
+            dfs.append(df.dropna(how='all'))
+        except: continue
+    # Gộp 3 sàn và reset lại số thứ tự dòng
     if dfs:
-        # ignore_index=True để đánh số lại dòng từ 0, tránh trùng lặp Index dòng
-        combined_df = pd.concat(dfs, axis=0, ignore_index=True, sort=False)
-        # Đảm bảo một lần nữa không có cột trùng sau khi gộp
-        combined_df = combined_df.loc[:, ~combined_df.columns.duplicated()]
-        return combined_df
+        combined_df = pd.concat(dfs, axis=0, ignore_index=True)
+        return combined_df.loc[:, ~combined_df.columns.duplicated()]
     return pd.DataFrame()
 
 # Khởi tạo DB và Bản đồ cột (Mapping) ngay lập tức
@@ -84,6 +77,17 @@ def compute_rsi_pro(data, window=14):
     rs = avg_gain / avg_loss
     return 100 - (100 / (1 + rs))
 st.set_page_config(page_title="HÃY CHỌN CÁ ĐÚNG v6.3.5", layout="wide", initial_sidebar_state="expanded")
+
+# Khởi tạo mã cá mặc định nếu chưa có
+if 'selected_ticker' not in st.session_state:
+    st.session_state.selected_ticker = "FPT"
+
+# Đồng bộ Sidebar với mã cá đang chọn
+with st.sidebar:
+    st.header("🎮 ĐÀI CHỈ HUY")
+    t_input = st.text_input("🔍 SOI MÃ CÁ", value=st.session_state.selected_ticker).upper()
+    # Nếu bro tự tay nhập mã vào ô này, nó cũng cập nhật luôn
+    st.session_state.selected_ticker = t_input
 
 st.markdown("""
     <style>
@@ -276,7 +280,7 @@ with tab_radar:
     
     with st.spinner('Đang quét tín hiệu từ đại dương...'):
         for tk in elite_20:
-            d = load_ticker_data(tk) # Dùng hàm đã cache
+            d = load_ticker_data(tk) 
             if d.empty: continue
             
             p_c = d['Close'].iloc[-1]
@@ -292,7 +296,7 @@ with tab_radar:
             curr_rsi = compute_rsi_pro(d['Close']).iloc[-1]
             temp = "🔥 Nóng" if curr_rsi > 70 else "❄️ Lạnh" if curr_rsi < 30 else "🌤️ Êm"
             
-            # Phân loại Cá theo tiêu chuẩn mới
+            # Phân loại Cá theo tiêu chuẩn của bro
             if p_c > ma20 and v_now > v_avg * 1.5 and is_stronger:
                 loai_ca, priority = "🚀 SIÊU CÁ", 1
             elif p_c > ma20 and p_c > ma50:
@@ -302,28 +306,36 @@ with tab_radar:
             else:
                 loai_ca, priority = "Cá Nhỏ 🐟", 4
             
+            # ĐÂY LÀ PHẦN GIỮ NGUYÊN TẤT CẢ CÁC CỘT TRONG ẢNH MẪU CỦA BRO
             radar_list.append({
-                "Mã": tk, "Giá": f"{p_c:,.0f}",
+                "Mã": tk, 
+                "Giá": f"{p_c:,.0f}",
                 "Sóng": "🌊 Mạnh" if v_now > v_avg * 1.5 else "☕ Lặng",
-                "Nhiệt độ": temp, "Đại Dương": "💪 Khỏe" if is_stronger else "🐌 Yếu",
-                "Loại": loai_ca, "Thức ăn": f"{((ma20/p_c)-1)*100:+.1f}%" if p_c < ma20 else "✅ Đang no",
-                "priority": priority, "RS_Raw": stock_perf - vni_perf
+                "Nhiệt độ": temp, 
+                "Đại Dương": "💪 Khỏe" if is_stronger else "🐌 Yếu",
+                "Loại": loai_ca, 
+                "Thức ăn": f"{((ma20/p_c)-1)*100:+.1f}%" if p_c < ma20 else "✅ Đang no",
+                "priority": priority, 
+                "RS_Raw": stock_perf - vni_perf
             })
 
+    # Sắp xếp để Siêu Cá bơi lên đầu
     df_radar = pd.DataFrame(radar_list).sort_values(by=["priority", "RS_Raw"], ascending=[True, False])
     
+    # BẢNG HIỂN THỊ: Giữ đủ cột, dùng gạch dưới _, và hỗ trợ CLICK
     selection = st.dataframe(
-        df_radar.drop(columns=['priority', 'RS_Raw']),
-        use_container_width=True, hide_index=True,
-        selection_mode="single-row", on_select="rerun"
+        df_radar.drop(columns=['priority', 'RS_Raw']), # Chỉ ẩn cột phụ để sắp xếp
+        use_container_width=True, 
+        hide_index=True,
+        selection_mode="single_row", # Dùng gạch dưới để không lỗi đỏ
+        on_select="rerun"
     )
 
-    if len(selection.selection.rows) > 0:
-        st.session_state.selected_ticker = df_radar.iloc[selection.selection.rows[0]]['Mã']
-        st.toast(f"🎯 Khóa mục tiêu: {st.session_state.selected_ticker}")
-            
-    # Sắp xếp để Siêu Cá hiện lên đầu danh sách
-    df_radar = pd.DataFrame(radar_list).sort_values(by="priority")
+    # LOGIC ĐỒNG BỘ: Khi click vào cá, báo cho Tab sau biết
+    if selection and len(selection.selection.rows) > 0:
+        idx = selection.selection.rows[0]
+        st.session_state.selected_ticker = df_radar.iloc[idx]['Mã']
+        st.toast(f"🎯 Đã khóa mục tiêu: {st.session_state.selected_ticker}", icon="🚀")
 
     # --- ĐOẠN MỚI: BẢNG CÓ KHẢ NĂNG CLICK CHỌN ---
     # Sử dụng st.dataframe để bật tính năng chọn dòng
