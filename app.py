@@ -5,7 +5,25 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from datetime import datetime
 
-@st.cache_data # Dùng cache để app chỉ tải một lần, cực nhanh
+@st.cache_data(ttl=600) # Lưu bộ nhớ đệm 10 phút để app chạy nhanh
+def load_ticker_data(ticker):
+    """Hàm máy bơm: Hút dữ liệu giá từ Yahoo Finance"""
+    try:
+        # Tự động thêm đuôi .VN cho các mã cá sàn Việt Nam
+        data = yf.download(f"{ticker}.VN", period="150d", progress=False)
+        if not data.empty and isinstance(data.columns, pd.MultiIndex):
+            data.columns = data.columns.get_level_values(0)
+        return data
+    except:
+        return pd.DataFrame()
+
+# Cần thêm hàm này để tính 'Nhiệt độ' (RSI) mà Radar đang gọi
+def compute_rsi_pro(data, window=14):
+    delta = data.diff()
+    gain = (delta.where(delta > 0, 0)).rolling(window=window).mean()
+    loss = (-delta.where(delta < 0, 0)).rolling(window=window).mean()
+    rs = gain / loss
+    return 100 - (100 / (1 + rs))
 def load_vietstock_data():
     urls = [
         "https://github.com/DAOHUUDAT/Be-Loc-Sieu-Cap/raw/refs/heads/main/data/HOSE.xlsx",
@@ -307,8 +325,9 @@ with tab_analysis:
         st.rerun()
     # ---------------------------------------------------
     try:
-        t_obj = yf.Ticker(f"{t_input}.VN")
-        s_df = t_obj.history(period="1y")
+        # Dùng chung máy bơm đã khai báo ở đầu file
+        s_df = load_ticker_data(t_input) 
+        t_obj = yf.Ticker(f"{t_input}.VN") # Giữ lại để lấy quarterly_financials bên dưới
         if isinstance(s_df.columns, pd.MultiIndex): s_df.columns = s_df.columns.get_level_values(0)
         curr_p = float(s_df['Close'].iloc[-1])
         
