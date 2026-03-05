@@ -35,7 +35,7 @@ def get_star_rating(g_margin, debt_ratio, ttm_profit):
     return "⭐" * stars if stars > 0 else "🥚 (Cần theo dõi thêm)"
 
 # --- 1. CẤU HÌNH HỆ THỐNG GIAO DIỆN ---
-st.set_page_config(page_title="HÃY CHỌN CÁ ĐÚNG v6.3.5", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="HÃY CHỌN CÁ ĐÚNG v6.3.15", layout="wide", initial_sidebar_state="expanded")
 
 st.markdown("""
     <style>
@@ -49,6 +49,8 @@ st.markdown("""
 
 if 'history_log' not in st.session_state: 
     st.session_state['history_log'] = []
+if 'selected_ticker' not in st.session_state:
+    st.session_state.selected_ticker = "FPT"
 
 # --- HÀM TÍNH TOÁN KỸ THUẬT (Các tấm lọc) ---
 # --- TỪ ĐIỂN VIỆT HÓA BCTC SIÊU CẤP ---
@@ -277,28 +279,29 @@ with tab_radar:
         df_radar.drop(columns=['priority', 'RS_Raw']), 
         use_container_width=True, 
         hide_index=True,
-        selection_mode="single_row", 
-        on_select="rerun"
+        selection_mode="single_row", # Bắt buộc dùng gạch dưới _
+        on_select="rerun"            # Lệnh này giúp app nhận biết khi bro click
     )
 
-    # LOGIC ĐỒNG BỘ: Khi click vào dòng, cập nhật mã cho Tab sau
+    # ĐÂY LÀ ĐOẠN QUAN TRỌNG NHẤT ĐỂ NHẢY TAB
     if selection and len(selection.selection.rows) > 0:
         selected_idx = selection.selection.rows[0]
+        # Ghi mã cá vừa click vào bộ nhớ tạm
         st.session_state.selected_ticker = df_radar.iloc[selected_idx]['Mã']
         st.toast(f"🎯 Đã khóa mục tiêu: {st.session_state.selected_ticker}", icon="🚀")
 
 with tab_analysis:
-    # 1. Lấy mã cá từ session_state (là mã vừa click ở Radar)
+    # 1. Lấy mã cá từ bộ nhớ tạm (session_state)
     target = st.session_state.selected_ticker
     
-    # 2. Hiển thị ô nhập mã nhưng giá trị mặc định luôn là mã vừa chọn
+    # 2. Hiển thị ô nhập mã, nhưng giá trị mặc định luôn là mã vừa chọn từ Radar
     t_input = st.text_input(
         "Nhập mã cá muốn mổ xẻ:", 
         value=target,
-        key="ticker_input_analysis" # Dùng key riêng để không xung đột
+        key="ticker_input_analysis" 
     ).upper()
     
-    # 3. Đồng bộ ngược: Nếu bro gõ tay mã mới, hệ thống cũng ghi nhận luôn
+    # 3. Nếu bro tự tay gõ mã khác vào ô này, cập nhật ngược lại cho hệ thống
     if t_input != st.session_state.selected_ticker:
         st.session_state.selected_ticker = t_input
         st.rerun()
