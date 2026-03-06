@@ -5,23 +5,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from datetime import datetime
 
-@st.cache_data(ttl=3600)
-def load_all_radar_data(tickers):
-    """Hút dữ liệu của tất cả cá trong Radar một lần duy nhất để tăng tốc"""
-    try:
-        # Tải gộp tất cả mã trong 1 lần gọi lệnh (nhanh hơn gấp 5-10 lần)
-        data = yf.download([f"{t}.VN" for t in tickers], period="150d", progress=False, group_by='ticker')
-        return data
-    except:
-        return None
-
-# Cần thêm hàm này để tính 'Nhiệt độ' (RSI) mà Radar đang gọi
-def compute_rsi_pro(data, window=14):
-    delta = data.diff()
-    gain = (delta.where(delta > 0, 0)).rolling(window=window).mean()
-    loss = (-delta.where(delta < 0, 0)).rolling(window=window).mean()
-    rs = gain / loss
-    return 100 - (100 / (1 + rs))
+@st.cache_data # Dùng cache để app chỉ tải một lần, cực nhanh
 def load_vietstock_data():
     urls = [
         "https://github.com/DAOHUUDAT/Be-Loc-Sieu-Cap/raw/refs/heads/main/data/HOSE.xlsx",
@@ -51,7 +35,7 @@ def get_star_rating(g_margin, debt_ratio, ttm_profit):
     return "⭐" * stars if stars > 0 else "🥚 (Cần theo dõi thêm)"
 
 # --- 1. CẤU HÌNH HỆ THỐNG GIAO DIỆN ---
-st.set_page_config(page_title="HÃY CHỌN CÁ ĐÚNG v6.3.15", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="HÃY CHỌN CÁ ĐÚNG v6.3.5", layout="wide", initial_sidebar_state="expanded")
 
 st.markdown("""
     <style>
@@ -65,8 +49,6 @@ st.markdown("""
 
 if 'history_log' not in st.session_state: 
     st.session_state['history_log'] = []
-if 'selected_ticker' not in st.session_state:
-    st.session_state.selected_ticker = "FPT"
 
 # --- HÀM TÍNH TOÁN KỸ THUẬT (Các tấm lọc) ---
 # --- TỪ ĐIỂN VIỆT HÓA BCTC SIÊU CẤP ---
@@ -156,7 +138,7 @@ with st.sidebar:
     )
     
     st.header("🎮 ĐÀI CHỈ HUY")
-    t_input = st.text_input("🔍 SOI MÃ CÁ", "VNI").upper()
+    t_input = st.text_input("🔍 SOI MÃ CÁ", "VGC").upper()
     st.divider()
 
     # 2. Cẩm Nang Toàn Diện (Đã sửa lỗi thụt lề)
@@ -217,7 +199,7 @@ with st.sidebar:
     Hãy luôn tự tìm hiểu và quản trị rủi ro cá nhân.
     """)
 
-st.title("🚀 Bể Lọc v6.3.15: HÃY CHỌN CÁ ĐÚNG")
+st.title("🚀 Bể Lọc v6.3.7: HÃY CHỌN CÁ ĐÚNG")
 
 # --- 3. TRẠM QUAN TRẮC ĐẠI DƯƠNG (VN-INDEX) ---
 inf_factor = 1.0 
@@ -240,99 +222,77 @@ except: pass
 tab_radar, tab_analysis, tab_bctc, tab_history = st.tabs(["🎯 RADAR ELITE", "💎 CHI TIẾT SIÊU CÁ", "📊 MỔ XẺ BCTC", "📓 SỔ VÀNG"])
 
 with tab_radar:
-    st.subheader("🤖 Top 20 SIÊU CÁ (Hệ thống Radar)")
-    elite_20 = ["DGC", "MWG", "FPT", "TCB", "SSI", "HPG", "GVR", "CTR", "DBC", "VNM", "STB", "MBB", "ACB", "KBC", "VGC", "PVS", "PVD", "ANV", "VHC", "REE"]
+    st.subheader("🤖 Top 20 SIÊU CÁ")
     
-    # Hút toàn bộ dữ liệu 20 con cá về trước
-    all_data = load_all_radar_data(elite_20)
+    # Hiển thị trạng thái Đại dương để làm tham chiếu
+    status_color = "green" if inf_factor > 1 else "red"
+    st.markdown(f"**Trạng thái dòng nước:** <span style='color:{status_color}'>{ '🌊 Thuận lợi (Hệ số x' + str(inf_factor) + ')' if inf_factor > 1 else '⚠️ Khó khăn (Hệ số x' + str(inf_factor) + ')' }</span>", unsafe_allow_html=True)
+    
+    # Danh mục 20 mã trọng điểm
+    elite_20 = ["DGC", "MWG", "FPT", "TCB", "SSI", "HPG", "GVR", "CTR", "DBC", "VNM", "STB", "MBB", "ACB", "KBC", "VGC", "PVS", "PVD", "ANV", "VHC", "REE"]
     radar_list = []
     
-    with st.spinner('Đang quét tín hiệu từ đại dương...'):
+    with st.spinner('Đang tầm soát siêu cá...'):
         for tk in elite_20:
-            # Lấy dữ liệu từ bản gộp, không tải lại nữa
             try:
-                d = all_data[f"{tk}.VN"].dropna()
+                # Tải dữ liệu 100 phiên để tính toán MA50 và RS
+                d = yf.download(f"{tk}.VN", period="100d", progress=False)
+                if not d.empty:
+                    if isinstance(d.columns, pd.MultiIndex): d.columns = d.columns.get_level_values(0)
+                    
+                    p_c = d['Close'].iloc[-1]
+                    v_now = d['Volume'].iloc[-1]
+                    v_avg = d['Volume'].rolling(20).mean().iloc[-1]
+                    ma20 = d['Close'].rolling(20).mean().iloc[-1]
+                    ma50 = d['Close'].rolling(50).mean().iloc[-1]
+                    
+                    # 1. Tính nhiệt độ RSI
+                    d['rsi_val'] = compute_rsi(d['Close'])
+                    curr_rsi = d['rsi_val'].iloc[-1]
+                    temp = "🔥 Nóng" if curr_rsi > 70 else "❄️ Lạnh" if curr_rsi < 30 else "🌤️ Êm"
+                    
+                    # 2. Tính sức mạnh tương quan (RS - Relative Strength)
+                    # Hiệu suất mã vs VN-Index trong 20 phiên
+                    stock_perf = (p_c / d['Close'].iloc[-20]) - 1
+                    vni_perf = (v_c / vni['Close'].iloc[-20]) - 1 if not vni.empty else 0
+                    is_stronger = stock_perf > vni_perf
+                    
+                    # 3. PHÂN LOẠI SIÊU CÁ (Theo triết lý hôm qua đã nghiên cứu)
+                    # Điều kiện Siêu Cá: Giá > MA20, Vol > 1.2x trung bình, và Khỏe hơn Đại dương
+                    if p_c > ma20 and v_now > v_avg * 1.2 and is_stronger:
+                        loai_ca = "🚀 SIÊU CÁ"
+                        priority = 1
+                    elif p_c > ma20 and p_c > ma50:
+                        loai_ca = "Cá Lớn 🐋"
+                        priority = 2
+                    elif p_c > ma20:
+                        loai_ca = "Cá Đang Lớn 🐡"
+                        priority = 3
+                    else:
+                        loai_ca = "Cá Nhỏ 🐟"
+                        priority = 4
+                        
+                    radar_list.append({
+                        "Mã": tk, 
+                        "Giá": f"{p_c:,.0f}",
+                        "Sóng": "🌊 Mạnh" if v_now > v_avg * 1.5 else "☕ Lặng",
+                        "Nhiệt độ": temp,
+                        "Đại Dương": "💪 Khỏe" if is_stronger else "🐌 Yếu",
+                        "Loại": loai_ca,
+                        "Thức ăn": f"{((ma20/p_c)-1)*100:+.1f}%" if p_c < ma20 else "✅ Đang no",
+                        "priority": priority
+                    })
             except: continue
             
-            if d.empty: continue
-            
-            p_c = d['Close'].iloc[-1]
-            v_now = d['Volume'].iloc[-1]
-            v_avg = d['Volume'].rolling(20).mean().iloc[-1]
-            ma20 = d['Close'].rolling(20).mean().iloc[-1]
-            ma50 = d['Close'].rolling(50).mean().iloc[-1]
-            
-            # Tính RS (Sức mạnh tương đối)
-            stock_perf = (p_c / d['Close'].iloc[-20]) - 1
-            vni_perf = (v_c / vni['Close'].iloc[-20]) - 1 if not vni.empty else 0
-            is_stronger = stock_perf > vni_perf
-            
-            # Tính RSI Pro cho Nhiệt độ
-            curr_rsi = compute_rsi_pro(d['Close']).iloc[-1]
-            temp = "🔥 Nóng" if curr_rsi > 70 else "❄️ Lạnh" if curr_rsi < 30 else "🌤️ Êm"
-            
-            # Phân loại cá dựa trên MA và Vol
-            if p_c > ma20 and v_now > v_avg * 1.5 and is_stronger:
-                loai_ca, priority = "🚀 SIÊU CÁ", 1
-            elif p_c > ma20 and p_c > ma50:
-                loai_ca, priority = "Cá Lớn 🐋", 2
-            elif p_c > ma20:
-                loai_ca, priority = "Cá Đang Lớn 🐡", 3
-            else:
-                loai_ca, priority = "Cá Nhỏ 🐟", 4
-            
-            # ĐÂY LÀ ĐOẠN GIỮ NGUYÊN CÁC CỘT TRONG ẢNH MẪU
-            radar_list.append({
-                "Mã": tk, 
-                "Giá": f"{p_c:,.0f}",
-                "Sóng": "🌊 Mạnh" if v_now > v_avg * 1.5 else "☕ Lặng",
-                "Nhiệt độ": temp, 
-                "Đại Dương": "💪 Khỏe" if is_stronger else "🐌 Yếu",
-                "Loại": loai_ca, 
-                "Thức ăn": f"{((ma20/p_c)-1)*100:+.1f}%" if p_c < ma20 else "✅ Đang no",
-                "priority": priority, 
-                "RS_Raw": stock_perf - vni_perf
-            })
-
-    # Tạo DataFrame và sắp xếp
-    df_radar = pd.DataFrame(radar_list).sort_values(by=["priority", "RS_Raw"], ascending=[True, False])
-    
-    # HIỂN THỊ DUY NHẤT 1 BẢNG 
-    selection = st.dataframe(
-        df_radar.drop(columns=['priority', 'RS_Raw']), 
-        use_container_width=True, 
-        hide_index=True,
-        selection_mode="single-row", 
-        on_select="rerun"            
-    )
-
-    # ĐÂY LÀ ĐOẠN QUAN TRỌNG NHẤT ĐỂ NHẢY TAB
-    if selection and len(selection.selection.rows) > 0:
-        selected_idx = selection.selection.rows[0]
-        # Ghi mã cá vừa click vào bộ nhớ tạm
-        st.session_state.selected_ticker = df_radar.iloc[selected_idx]['Mã']
-        st.toast(f"🎯 Đã khóa mục tiêu: {st.session_state.selected_ticker}", icon="🚀")
+    # Sắp xếp để Siêu Cá hiện lên đầu danh sách
+    df_radar = pd.DataFrame(radar_list).sort_values(by="priority")
+    # Ẩn cột priority khi hiển thị
+    st.table(df_radar.drop(columns=['priority']))
 
 with tab_analysis:
-    # 1. Lấy mã cá từ bộ nhớ tạm (session_state)
-    target = st.session_state.selected_ticker
-    
-    # 2. Hiển thị ô nhập mã, nhưng giá trị mặc định luôn là mã vừa chọn từ Radar
-    t_input = st.text_input(
-        "Nhập mã cá muốn mổ xẻ:", 
-        value=target,
-        key="ticker_input_analysis" 
-    ).upper()
-    
-    # 3. Nếu bro tự tay gõ mã khác vào ô này, cập nhật ngược lại cho hệ thống
-    if t_input != st.session_state.selected_ticker:
-        st.session_state.selected_ticker = t_input
-        st.rerun()
-    # ---------------------------------------------------
     try:
-        # Dùng chung máy bơm đã khai báo ở đầu file
-        s_df = load_ticker_data(t_input) 
-        t_obj = yf.Ticker(f"{t_input}.VN") # Giữ lại để lấy quarterly_financials bên dưới
+        t_obj = yf.Ticker(f"{t_input}.VN")
+        s_df = t_obj.history(period="1y")
         if isinstance(s_df.columns, pd.MultiIndex): s_df.columns = s_df.columns.get_level_values(0)
         curr_p = float(s_df['Close'].iloc[-1])
         
