@@ -23,11 +23,24 @@ def load_ticker_data(ticker: str) -> pd.DataFrame:
 
 
 @st.cache_data(ttl=600, show_spinner=False)
-def load_all_ticker_data(tickers: list[str]) -> pd.DataFrame:
-    """Tải gộp nhiều mã một lần cho Radar (giảm 20 lần request)."""
+def load_all_ticker_data(tickers: list[str]) -> dict[str, pd.DataFrame]:
+    """
+    Tải gộp nhiều mã cho Radar, flatten ngay về dict để tránh xs() từng vòng lặp.
+    Giảm đáng kể overhead MultiIndex mỗi lần duyệt.
+    """
     tickers_with_suffix = [f"{t}.VN" for t in tickers]
-    data = yf.download(tickers_with_suffix, period="150d", progress=False, group_by="ticker")
-    return data if not data.empty else pd.DataFrame()
+    raw = yf.download(tickers_with_suffix, period="150d", progress=False, group_by="ticker")
+    if raw.empty:
+        return {}
+    data_dict: dict[str, pd.DataFrame] = {}
+    if isinstance(raw.columns, pd.MultiIndex):
+        for tk in tickers_with_suffix:
+            if tk in raw.columns.get_level_values(0):
+                df = raw.xs(tk, axis=1, level=0).dropna()
+                data_dict[tk[:-3]] = df
+    else:
+        data_dict[tickers[0]] = raw.dropna()
+    return data_dict
 
 
 @st.cache_data(ttl=600, show_spinner=False)
@@ -192,6 +205,7 @@ st.title("🚀 Bể Lọc v6.3.15: HÃY CHỌN CÁ ĐÚNG")
 inf_factor = 1.0
 v_c = 1200.0
 vni = load_vni_data()
+vni_perf_base = None
 if not vni.empty:
     try:
         v_c = float(vni["Close"].iloc[-1])
@@ -201,6 +215,8 @@ if not vni.empty:
         vl9 = vni["Low"].rolling(9).min()
         vsa = (((vh9 + vl9) / 2 + (vh26 + vl26) / 2) / 2).shift(26).iloc[-1]
         inf_factor = 1.15 if v_c > vsa else 0.85
+        if len(vni) >= 20:
+            vni_perf_base = vni["Close"].iloc[-20]
         st.info(
             f"🌊 Đại Dương: {'🟢 THẢ LƯỚI (Sóng Thuận)' if v_c > vsa else '🔴 ĐÁNH KẸO (Sóng Nghịch)'} | Co giãn: {inf_factor}x"
         )
@@ -222,10 +238,7 @@ with tab_radar:
     all_data = load_all_ticker_data(elite_20)
     with st.spinner("Đang quét tín hiệu từ đại dương..."):
         for tk in elite_20:
-            ticker_key = f"{tk}.VN"
-            d = pd.DataFrame()
-            if not all_data.empty and isinstance(all_data.columns, pd.MultiIndex) and ticker_key in all_data.columns.get_level_values(0):
-                d = all_data.xs(ticker_key, axis=1, level=0).dropna()
+            d = all_data.get(tk, pd.DataFrame())
             if d.empty:
                 d = load_ticker_data(tk)
             if d.empty:
@@ -238,7 +251,7 @@ with tab_radar:
             ma50 = d["Close"].rolling(50).mean().iloc[-1]
 
             stock_perf = (p_c / d["Close"].iloc[-20]) - 1 if len(d) >= 20 else 0
-            vni_perf = (v_c / vni["Close"].iloc[-20]) - 1 if not vni.empty and len(vni) >= 20 else 0
+            vni_perf = (v_c / vni_perf_base) - 1 if vni_perf_base else 0
             is_stronger = stock_perf > vni_perf
 
             curr_rsi = compute_rsi_pro(d["Close"]).iloc[-1]
