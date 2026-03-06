@@ -61,24 +61,26 @@ def compute_rsi_pro(data: pd.Series, window: int = 14) -> pd.Series:
     return 100 - (100 / (1 + rs))
 
 
-@st.cache_data(ttl=3600, show_spinner=False)
-def load_vietstock_data() -> pd.DataFrame:
-    """Đọc 3 file Excel trên GitHub, loại cột trùng để tránh lỗi truy vấn."""
-    urls = [
-        "https://github.com/DAOHUUDAT/Be-Loc-Sieu-Cap/raw/refs/heads/main/data/HOSE.xlsx",
-        "https://github.com/DAOHUUDAT/Be-Loc-Sieu-Cap/raw/refs/heads/main/data/HNX.xlsx",
-        "https://github.com/DAOHUUDAT/Be-Loc-Sieu-Cap/raw/refs/heads/main/data/UPCOM.xlsx",
-    ]
-    dfs = []
-    for url in urls:
-        try:
-            df = pd.read_excel(url)
-            df.columns = [str(c).strip() for c in df.columns]
-            df = df.loc[:, ~df.columns.duplicated()]
-            dfs.append(df)
-        except Exception:
-            continue
-    return pd.concat(dfs, ignore_index=True) if dfs else pd.DataFrame()
+# --- 1. MÁY BƠM LINH ĐƠN (Sử dụng File Master 50 Cột) ---
+@st.cache_data(ttl=3600)
+def load_master_data():
+    """Hút đại dương dữ liệu đã được luyện sạch 50 cột"""
+    # Bro thay link này bằng link RAW file BE_LOC_MASTER_50.xlsx trên GitHub của bro nhé
+    url = "https://github.com/DAOHUUDAT/Be-Loc-Sieu-Cap/raw/refs/heads/main/data/BE_LOC_MASTER_50.xlsx"
+    try:
+        # Vì là file Excel nên dùng read_excel
+        df = pd.read_excel(url)
+        # Làm sạch tên cột để chắc chắn không có khoảng trắng thừa
+        df.columns = [str(c).strip() for c in df.columns]
+        return df
+    except Exception as e:
+        st.error(f"❌ Lỗi hút linh đơn: {e}")
+        return pd.DataFrame()
+
+# Kích hoạt dữ liệu Master ngay đầu app
+df_master = load_master_data()
+# Lấy danh sách mã cá để chạy Radar
+TICKERS = df_master['Mã CK'].tolist() if not df_master.empty else []
 
 
 # Kích hoạt dữ liệu nện
@@ -422,12 +424,21 @@ with tab_bctc:
                 cols = [c for c in vietstock_db.columns if keyword.lower() in str(c).lower()]
                 return cols[0] if cols else None
 
-            col_rev = find_col("Doanh thu thuần") or find_col("Doanh thu bán hàng")
-            col_profit = find_col("Lợi nhuận sau thuế")
-            col_inventory = find_col("Hàng tồn kho")
-            col_cash = find_col("Tiền và các khoản tương đương tiền")
-
-            col_fa1, col_fa2 = st.columns([2, 1])
+        # --- TRONG TAB CHI TIẾT: PHÂN TÍCH NỘI TẠNG CÁ ---
+    if not df_master.empty:
+        row = df_master[df_master['Mã CK'] == t_input].iloc[0]
+    
+        # 1. Đo lường sức khỏe (Metrics)
+        c1, c2, c3 = st.columns(3)
+    
+        # Giờ gọi tên cột trực tiếp vì đã chuẩn hóa trong file Master
+        revenue = row.get('Doanh thu thuần', 0)
+        profit = row.get('Lợi nhuận sau thuế của cổ đông của Công ty mẹ', 0)
+        eps = row.get('Lãi cơ bản trên cổ phiếu', 0)
+    
+        c1.metric("Doanh thu (Tỷ)", f"{revenue/1e9:,.1f}")
+        c2.metric("Lợi nhuận (Tỷ)", f"{profit/1e9:,.1f}")
+        c3.metric("EPS (VND)", f"{eps:,.0f}")
 
             with col_fa1:
                 st.write("**📑 Thông số tài chính cốt lõi (Từ file Excel):**")
@@ -459,11 +470,21 @@ with tab_bctc:
             st.divider()
 
             st.subheader("🧠 Phân tích chuyên sâu (Tầm nhìn A7)")
-            c1, c2 = st.columns(2)
-            if col_inventory:
-                c1.info(f"📦 **Của để dành (Tồn kho):** {row[col_inventory]/1e9:,.1f} Tỷ")
-            if col_cash:
-                c2.info(f"💰 **Sức mạnh tiền mặt:** {row[col_cash]/1e9:,.1f} Tỷ")
+                c1, c2 = st.columns(2)
+
+                # Lấy trực tiếp từ 50 cột cốt lõi
+                inventory = row.get('Hàng tồn kho', 0)
+                cash = row.get('Tiền và các khoản tương đương tiền', 0)
+                debt = row.get('Vay và nợ thuê tài chính ngắn hạn', 0) + row.get('Vay và nợ thuê tài chính dài hạn', 0)
+
+                c1.info(f"📦 **Của để dành (Tồn kho):** {inventory/1e9:,.1f} Tỷ")
+                c2.info(f"💰 **Sức mạnh tiền mặt:** {cash/1e9:,.1f} Tỷ")
+
+                # Bonus thêm chỉ số Nợ để bro soi cá có bị "ngộp" không
+                if debt > cash:
+                    st.warning(f"⚠️ Lưu ý: Nợ vay ({debt/1e9:,.1f} Tỷ) đang lớn hơn tiền mặt. Kiểm tra khả năng trả lãi!")
+                else:
+                    st.success(f"✅ Tài chính lành mạnh: Tiền mặt đủ bao phủ nợ vay.")
 
             st.info("💡 Kiểm tra xem 'Hàng tồn kho' có phải là các dự án sắp mở bán không. Đó là ngòi nổ cho SIÊU CÁ!")
 
