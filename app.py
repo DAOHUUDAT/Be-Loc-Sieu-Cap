@@ -93,6 +93,8 @@ if "history_log" not in st.session_state:
     st.session_state["history_log"] = []
 if "selected_ticker" not in st.session_state:
     st.session_state.selected_ticker = "FPT"
+if "ticker_input_analysis" not in st.session_state:
+    st.session_state.ticker_input_analysis = st.session_state.selected_ticker
 
 # --- TỪ ĐIỂN VIỆT HÓA BCTC (để dành dùng sau) ---
 DICTIONARY_BCTC = {
@@ -276,12 +278,18 @@ with tab_radar:
 
     if selection and len(selection.selection.rows) > 0:
         selected_idx = selection.selection.rows[0]
-        st.session_state.selected_ticker = df_radar.iloc[selected_idx]["Mã"]
-        st.toast(f"🎯 Đã khóa mục tiêu: {st.session_state.selected_ticker}", icon="🚀")
+        picked = df_radar.iloc[selected_idx]["Mã"]
+        st.session_state.selected_ticker = picked
+        st.session_state.ticker_input_analysis = picked  # sync với ô nhập phân tích
+        st.toast(f"🎯 Đã khóa mục tiêu: {picked}", icon="🚀")
+        st.rerun()
 
 with tab_analysis:
     target = st.session_state.selected_ticker
-    t_input = st.text_input("Nhập mã cá muốn mổ xẻ:", value=target, key="ticker_input_analysis").upper()
+    if st.session_state.get("ticker_input_analysis") != target:
+        st.session_state.ticker_input_analysis = target
+
+    t_input = st.text_input("Nhập mã cá muốn mổ xẻ:", value=st.session_state.ticker_input_analysis, key="ticker_input_analysis").upper()
 
     if t_input != st.session_state.selected_ticker:
         st.session_state.selected_ticker = t_input
