@@ -62,29 +62,25 @@ def compute_rsi_pro(data: pd.Series, window: int = 14) -> pd.Series:
 
 
 # --- 1. MÁY BƠM LINH ĐƠN (Sử dụng File Master 50 Cột) ---
-@st.cache_data(ttl=3600)
-def load_master_data():
-    """Hút đại dương dữ liệu đã được luyện sạch 50 cột"""
-    # Bro thay link này bằng link RAW file BE_LOC_MASTER_50.xlsx trên GitHub của bro nhé
+@st.cache_data(ttl=3600, show_spinner=False)
+def load_vietstock_data() -> pd.DataFrame:
+    """Hút linh đơn 50 cột đã luyện sạch - Siêu nhanh, siêu gọn"""
+    # Link file Master bro đã up lên Github
     url = "https://github.com/DAOHUUDAT/Be-Loc-Sieu-Cap/raw/refs/heads/main/data/BE_LOC_MASTER_50.xlsx"
     try:
-        # Vì là file Excel nên dùng read_excel
+        # Nếu file trên Github là Excel dùng read_excel, nếu là csv dùng read_csv
+        # Ở đây tôi mặc định bro dùng Excel như tên file
         df = pd.read_excel(url)
-        # Làm sạch tên cột để chắc chắn không có khoảng trắng thừa
+        # Làm sạch tên cột để tránh lỗi khoảng trắng
         df.columns = [str(c).strip() for c in df.columns]
         return df
     except Exception as e:
         st.error(f"❌ Lỗi hút linh đơn: {e}")
         return pd.DataFrame()
 
-# Kích hoạt dữ liệu Master ngay đầu app
-df_master = load_master_data()
-# Lấy danh sách mã cá để chạy Radar
-TICKERS = df_master['Mã CK'].tolist() if not df_master.empty else []
-
-
-# Kích hoạt dữ liệu nện
-vietstock_db = load_vietstock_data()
+# Nạp dữ liệu Master
+df_master = load_vietstock_data()
+TICKERS = df_master["Mã CK"].tolist() if not df_master.empty else []
 
 # -------------------------------
 # 1. CẤU HÌNH HỆ THỐNG GIAO DIỆN
@@ -468,30 +464,25 @@ with tab_bctc:
                         st.error("⚠️ Cá đang sụt cân (Lỗ)")
 
             st.divider()
-
             st.subheader("🧠 Phân tích chuyên sâu (Tầm nhìn A7)")
-                c1, c2 = st.columns(2)
+            c1, c2 = st.columns(2)
+            
+            # Lấy dữ liệu trực tiếp
+            inventory = row.get("Hàng tồn kho", 0)
+            cash = row.get("Tiền và các khoản tương đương tiền", 0)
+            # Tính tổng nợ vay
+            debt = row.get("Vay và nợ thuê tài chính ngắn hạn", 0) + row.get("Vay và nợ thuê tài chính dài hạn", 0)
 
-                # Lấy trực tiếp từ 50 cột cốt lõi
-                inventory = row.get('Hàng tồn kho', 0)
-                cash = row.get('Tiền và các khoản tương đương tiền', 0)
-                debt = row.get('Vay và nợ thuê tài chính ngắn hạn', 0) + row.get('Vay và nợ thuê tài chính dài hạn', 0)
+            c1.info(f"📦 **Của để dành (Tồn kho):** {inventory/1e9:,.1f} Tỷ")
+            c2.info(f"💰 **Sức mạnh tiền mặt:** {cash/1e9:,.1f} Tỷ")
 
-                c1.info(f"📦 **Của để dành (Tồn kho):** {inventory/1e9:,.1f} Tỷ")
-                c2.info(f"💰 **Sức mạnh tiền mặt:** {cash/1e9:,.1f} Tỷ")
-
-                # Bonus thêm chỉ số Nợ để bro soi cá có bị "ngộp" không
-                if debt > cash:
-                    st.warning(f"⚠️ Lưu ý: Nợ vay ({debt/1e9:,.1f} Tỷ) đang lớn hơn tiền mặt. Kiểm tra khả năng trả lãi!")
-                else:
-                    st.success(f"✅ Tài chính lành mạnh: Tiền mặt đủ bao phủ nợ vay.")
+            # Cảnh báo nợ vay - Tính năng mới cho v7.0
+            if debt > cash:
+                st.warning(f"⚠️ Nợ vay ({debt/1e9:,.1f} Tỷ) > Tiền mặt. Cá đang dùng đòn bẩy cao!")
+            else:
+                st.success(f"✅ Tài chính lành mạnh: Tiền mặt đủ bao nợ.")
 
             st.info("💡 Kiểm tra xem 'Hàng tồn kho' có phải là các dự án sắp mở bán không. Đó là ngòi nổ cho SIÊU CÁ!")
-
-        else:
-            st.warning(f"Mã {t_input} không có trong bộ dữ liệu 3 sàn. Bro hãy kiểm tra lại file Excel.")
-    else:
-        st.info("Bro hãy chọn một con cá ở Tab Radar hoặc nhập mã để bắt đầu mổ xẻ.")
 
 with tab_history:
     st.subheader("📓 DANH SÁCH CÁ ĐÃ TẦM SOÁT")
