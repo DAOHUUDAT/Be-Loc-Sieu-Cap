@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from datetime import datetime
 
-@st.cache_data(ttl=600) # Lưu bộ nhớ đệm 10 phút để app chạy nhanh
+@st.cache_data(ttl=1800) # Lưu bộ nhớ đệm 10 phút để app chạy nhanh
 def load_ticker_data(ticker):
     """Hàm máy bơm: Hút dữ liệu giá từ Yahoo Finance"""
     try:
@@ -482,7 +482,7 @@ with tab_bctc:
 
             st.divider()
             
-            # --- TƯ DUY A7 & TRƯỜNG MONEY ---
+            # --- CỦA ĐỂ DÀNH & SỨC MẠNH TIỀN MẶT ---
             st.subheader("🧠 Phân tích chuyên sâu (Tầm nhìn A7)")
             c1, c2 = st.columns(2)
             with c1:
